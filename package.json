@@ -1,0 +1,32 @@
+{
+  "name": "acquire",
+  "version": "0.0.0",
+  "private": true,
+  "license": "see LICENSE file",
+  "description": "Simple react app for the acqurie game",
+  "main": "server.js",
+  "dependencies": {
+    "body-parser": "^1.4.3",
+    "express": "^4.4.5"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hardlyHacking/acquire"
+  },
+  "keywords": [
+    "acquire",
+    "react"
+  ],
+  "author": "hardlyHacking",
+  "bugs": {
+    "url": "https://github.com/hardlyHacking/acquire/issues"
+  },
+  "homepage": "https://github.com/hardlyHacking/acquire",
+  "engines" : {
+    "node" : "0.12.x"
+  }
+}
