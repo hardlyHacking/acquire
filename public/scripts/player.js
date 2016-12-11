@@ -3,8 +3,7 @@ class Player extends React.Component {
     super(props);
     this.state = {
       funds: props.funds,
-      name: props.name,
-      shares: funds.shares,
+      shares: [],
     }
   }
 
@@ -30,8 +29,10 @@ class Player extends React.Component {
   renderSharesTable() {
     const numInvestments = this.state.shares
       .filter((value) => { return value > 0; });
-    if (shareCounts === 0) {
-      return null;
+    if (numInvestments.length === 0) {
+      return (
+        <p>No shares.</p>
+      );
     }
     const shareCounts = numInvestments.map((value, index) => {
       return (
@@ -55,7 +56,7 @@ class Player extends React.Component {
   render() {
     return (
       <div>
-        <p>{this.state.name}</p>
+        <p>{this.props.name}</p>
         <p>Funds: {this.state.funds}</p>
         {this.renderSharesTable()}
       </div>

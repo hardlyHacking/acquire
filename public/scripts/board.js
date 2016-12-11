@@ -2,10 +2,6 @@ class Board extends React.Component {
   constructor(props) {
     super(props);
 
-    let squares = Array(props.numRows).fill(null).map((row) => {
-      return Array(props.numColumns).fill(null);
-    });
-
     let costMatrix = Array(7).fill(null);
     // Cheap, Medium, Expensive, Stock Price, First, Second
     costMatrix[0]  = [2,    null, null, 200,  2000,  1000];
@@ -20,10 +16,12 @@ class Board extends React.Component {
     costMatrix[9]  = [null, 41,   31,   1100, 11000, 5500];
     costMatrix[10] = [null, null, 41,   1200, 12000, 6000];
 
-    const players = props.playerNames.map((name) => {
-      return { funds: 6000, name: name, shares: Array(6).fill(0) };
-    });
     const indexOffset = Math.max(this.props.numColumns, this.props.numRows);
+    const squares = Array(props.numRows).fill(Array(props.numColumns).fill(null));
+
+    const numPlayers = props.playerNames.length;
+    const playerFunds = Array(numPlayers).fill(6000);
+    const playerShares = Array(numPlayers).fill(Array(7).fill(0));
 
     this.state = {
       costMatrix: costMatrix,
@@ -43,8 +41,9 @@ class Board extends React.Component {
       maxHotelSize: 0,
       newHotel: new Set(),
       numHotelsLeft: 6,
-      numPlayers: props.playerNames.length,
-      players: players,
+      numPlayers: numPlayers,
+      playerFunds: playerFunds,
+      playerShares: playerShares,
       squares: squares,
       turn: 0,
     };
@@ -61,6 +60,18 @@ class Board extends React.Component {
   encodeCoordinate(column, row) {
     const numColumns = this.state.squares[0].length;
     return row * numColumns + column;
+  }
+
+  gameOver() {
+    const hotelSizes = Object.keys(this.state.hotels)
+      .map((name) => { return this.state.hotels[name].size; });
+    const maxHotel = Math.max(...hotelSizes);
+    const safeChains = hotelSizes.filter((size) => { return size >= 11; });
+    const gameOver = maxHotel >= 41 || safeChains.length === 7;
+    this.setState({
+      gameOver: gameOver,
+    });
+    return gameOver;
   }
 
   getHotel(i) {
@@ -196,6 +207,10 @@ class Board extends React.Component {
     });
   }
 
+  renderGameOver() {
+    return null;
+  }
+
   renderMergingHotelModal() {
     if (this.state.isMergingHotel) {
 
@@ -241,8 +256,12 @@ class Board extends React.Component {
   }
 
   renderPlayers() {
-    return this.state.players.map((player) => {
-      this.renderPlayer(player);
+    return this.props.playerNames.map((name, index) => {
+        return <Player
+          funds={this.state.playerFunds[index]}
+          key={name}
+          name={name}
+          shares={this.state.playerShares[index]} />
     });
   }
 
@@ -253,10 +272,10 @@ class Board extends React.Component {
     const players = this.renderPlayers();
     return (
       <div>
-        <div className="status">{players}</div>
         {board}
         {mergeHotelModal}
         {newHotelModal}
+        <div className="status">{players}</div>
       </div>
     );
   }
