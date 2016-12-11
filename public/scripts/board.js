@@ -135,7 +135,7 @@ class Board extends React.Component {
     const squares = this.state.squares.map((row) => { return row.slice(); }),
           column = this.decodeColumn(i),
           row = this.decodeRow(i);
-    if (squares[row][column]) {
+    if (this.state.isCreatingHotel || squares[row][column]) {
       return;
     }
 
