@@ -214,8 +214,8 @@ class Board extends React.Component {
   }
 
   encodeCoordinate(column, row) {
-    const numRows = this.state.squares.length;
-    return row * numRows + column;
+    const numColumns = this.state.squares[0].length;
+    return row * numColumns + column;
   }
 
   getHotel(i) {
