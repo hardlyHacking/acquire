@@ -46,6 +46,8 @@ class Board extends React.Component {
       playerShares: playerShares,
       squares: squares,
       turn: 0,
+      turnPhaseBuy: false,
+      turnPhasePlace: false,
     };
   }
 
@@ -60,6 +62,24 @@ class Board extends React.Component {
   encodeCoordinate(column, row) {
     const numColumns = this.state.squares[0].length;
     return row * numColumns + column;
+  }
+
+  endTurn() {
+    if (!this.state.turnPhasePlace) {
+      alert('cannot end turn without placing a tile!');
+    }
+    if (this.state.isCreatingHotel) {
+      alert('cannot end turn during hotel creation!');
+    }
+    if (this.state.isMergingHotel) {
+      alert('cannot end turn during hotel merger!');
+    }
+    this.pickupNewTile();
+    this.setState({
+      turnPhasePlace: false,
+      turnPhaseBuy: false,
+      turn: this.state.turn + 1,
+    });
   }
 
   gameOver() {
@@ -146,7 +166,7 @@ class Board extends React.Component {
     const squares = this.state.squares.map((row) => { return row.slice(); }),
           column = this.decodeColumn(i),
           row = this.decodeRow(i);
-    if (this.state.isCreatingHotel || squares[row][column]) {
+    if (this.state.turnPhasePlace || this.state.isCreatingHotel || squares[row][column]) {
       return;
     }
 
@@ -167,6 +187,7 @@ class Board extends React.Component {
         isCreatingHotel: true,
         newHotel: new Set([i, surroundingSquares[0]]),
         squares: squares,
+        turnPhasePlace: true,
       });
       return;
     }
@@ -174,6 +195,7 @@ class Board extends React.Component {
     if (isMerger) {
       this.setState({
         isMergingHotel: true,
+        turnPhasePlace: true,
       });
       return;
     }
@@ -186,13 +208,17 @@ class Board extends React.Component {
       this.setState({
         hotels: copyHotels,
         squares: squares,
+        turnPhasePlace: true,
       });
     } else {
       this.setState({
         squares: squares,
+        turnPhasePlace: true,
       });
     }
   }
+
+  pickupNewTile() {}
 
   renderBoard() {
     return this.state.squares.map((row, rowNum) => {
@@ -205,6 +231,16 @@ class Board extends React.Component {
         </div>
       );
     });
+  }
+
+  renderEndTurn() {
+    if (this.state.gameOver) {
+      return null;
+    }
+    return (
+      <button onClick={() => this.endTurn()}
+      >End Turn</button>
+    );
   }
 
   renderGameOver() {
@@ -272,6 +308,8 @@ class Board extends React.Component {
     const players = this.renderPlayers();
     return (
       <div>
+        <h4>{this.props.playerNames[this.state.turn % this.state.numPlayers]} to Act</h4>
+        {this.renderEndTurn()}
         {board}
         {mergeHotelModal}
         {newHotelModal}
