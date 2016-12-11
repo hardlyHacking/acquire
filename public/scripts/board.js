@@ -336,10 +336,6 @@ class Board extends React.Component {
   }
 
   renderBoard() {
-    if (this.state.isCreatingHotel || this.state.isMergingHotel) {
-      return null;
-    }
-
     return this.state.squares.map((row, rowNum) => {
       let column = row.map((cell, columnNum) => {
         return this.renderSquare(rowNum * this.state.indexOffset + columnNum);
@@ -410,9 +406,9 @@ class Board extends React.Component {
     return (
       <div>
         <div className="status">{players}</div>
+        {board}
         {mergeHotelModal}
         {newHotelModal}
-        {board}
       </div>
     );
   }
