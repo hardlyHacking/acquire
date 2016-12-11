@@ -3,12 +3,11 @@ class HotelPick extends React.Component {
     super(props);
     this.state = {
       hovered: false,
-      name: props.name,
     };
   }
 
   getDefaultColor() {
-    switch (this.state.name) {
+    switch (this.props.name) {
       case 'american':
         return '#4169E1';
       case 'continental':
@@ -39,7 +38,7 @@ class HotelPick extends React.Component {
         onMouseLeave={() => this.setState({ hovered: false })}
         type="submit"
         style={buttonStyle}
-      > {this.state.name} </button>
+      > {this.props.name} </button>
     );
   }
 }
@@ -48,14 +47,12 @@ class Square extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      hotel: props.hotel,
       hovered: false,
-      value: props.value,
     }
   }
 
   getDefaultColor() {
-    switch (this.state.hotel) {
+    switch (this.props.hotel) {
       case 'american':
         return '#4169E1';
       case 'continental':
@@ -101,19 +98,19 @@ class Player extends React.Component {
   getHotelName(index) {
     switch (index) {
       case 0:
-        return 'American';
+        return 'american';
       case 1:
-        return 'Continental';
+        return 'continental';
       case 2:
-        return 'Festival';
+        return 'festival';
       case 3:
-        return 'Imperial';
+        return 'imperial';
       case 4:
-        return 'Luxor';
+        return 'luxor';
       case 5:
-        return 'Tower';
+        return 'tower';
       default:
-        return 'Worldwide';
+        return 'worldwide';
     }
   }
 
@@ -391,7 +388,7 @@ class Board extends React.Component {
           value = this.state.squares[row][column],
           hotel = Object.keys(this.state.hotels).filter((hotelName) => {
             return this.state.hotels[hotelName].has(i); });
-    return <Square key={i} hotel={hotel.length > 0 ? hotel[0] : hotel} value={value}
+    return <Square key={i} hotel={hotel.length === 1 ? hotel[0] : null} value={value}
       onClick={() => this.handleSquareClick(i)} />
   }
 
