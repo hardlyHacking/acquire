@@ -40,7 +40,7 @@ class Board extends React.Component {
       },
       maxHotelSize: 0,
       newHotel: new Set(),
-      numHotelsLeft: 6,
+      numHotelsLeft: 7,
       numPlayers: numPlayers,
       playerFunds: playerFunds,
       playerShares: playerShares,
@@ -233,6 +233,18 @@ class Board extends React.Component {
     });
   }
 
+  renderBuyPhase() {
+    if (this.state.numHotelsLeft === 7) {
+      return null;
+    }
+    const buyableHotels = Object.keys(this.state.hotels)
+      .filter((name) => { return this.state.hotels[name].size > 0; })
+      .map((name) => {
+        return null;
+      });
+    return null;
+  }
+
   renderEndTurn() {
     if (this.state.gameOver) {
       return null;
@@ -256,13 +268,9 @@ class Board extends React.Component {
 
   renderNewHotelModal() {
     if (this.state.isCreatingHotel) {
-      let newHotels = [];
-      for (let hotel in this.state.hotels) {
-        if (this.state.hotels[hotel].size === 0) {
-          newHotels.push(hotel);
-        }
-      }
-      if (this.state.numHotelsLeft !== newHotels.length - 1) {
+      const newHotels = Object.keys(this.state.hotels)
+        .filter((name) => { return this.state.hotels[name].size === 0; });
+      if (this.state.numHotelsLeft !== newHotels.length) {
         throw '(numHotelsLeft, newHotels): ' + this.state.numHotelsLeft + ',' + newHotels.length;
       }
       const hotels = newHotels.map((hotel) => {

@@ -1,4 +1,8 @@
 class Game extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+
   render() {
     const playerNames = ['player1', 'player2', 'player3', 'player4'];
     return (
