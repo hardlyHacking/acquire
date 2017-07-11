@@ -1,9 +1,11 @@
+import bson.json_util
 import bson.objectid
 import flask
 import flask.ext.login
 import json
 import os
 import pymongo
+import random
 
 
 app = flask.Flask(__name__, static_url_path='', static_folder='public')
@@ -13,9 +15,15 @@ login_manager = flask.ext.login.LoginManager()
 login_manager.init_app(app)
 
 
-@app.route('/game/<game_id>')
+#@app.route('/game/<game_id>')
 #@flask.ext.login.login_required
-def game(game_id):
+#def game(game_id):
+#    return flask.send_from_directory('public', 'game.html')
+
+
+@app.route('/game')
+#@flask.ext.login.login_required
+def game_stuff():
     return flask.send_from_directory('public', 'game.html')
 
 
@@ -97,8 +105,73 @@ def board_state(game_id):
     game = db.games.find_one({'_id': real_id})
     if game is None:
         return flask.jsonify({}), 404
-    else:
-        return flask.jsonify({'game': game}), 200
+    return flask.jsonify(json.loads(bson.json_util.dumps(game))), 200
+
+
+@app.route('/board/place_tile', methods=['POST'])
+def place_tile():
+    data = flask.request.form
+    game_id, tile_number = data['gameId'], int(data['tile'])
+    real_id = bson.objectid.ObjectId(game_id)
+
+    # TODO: validate that a tile has not already been placed
+
+    db.games.find_one_and_update({'_id': real_id},
+        {
+            '$push': {'squares': tile_number},
+            '$set': {'turnPlacePhase': True},
+        })
+
+    return flask.jsonify({}), 200
+
+
+@app.route('/board/new_tile', methods=['POST'])
+def new_tile():
+    data = flask.request.form
+    game_id = bson.objectid.ObjectId(data['gameId'])
+
+    game = db.games.find_one({'_id': game_id})
+
+    # TODO: validate that the current player only has 5 tiles in hand
+    hand_label = str(game['turn'] % game['numPlayers'])
+    if len(game['hand' + hand_label]) != 5:
+        pass
+
+    # TODO: validate that a tile has been placed
+    if not game['turnPlacePhase']:
+        pass
+
+    tile = random.sample(game['bag'], 1)
+    game['bag'].remove(tile)
+    game['hand' + hand_label].append(tile)
+    db.games.find_one_and_update({'+id': game_id},
+        {
+            '$set': {
+                'hand' + hand_label: game['hand' + hand_label],
+                'bag': game['bag'],
+            },
+        })
+
+    return flask.jsonify({'tile': tile}), 200
+
+
+@app.route('/board/end_turn', methods=['POST'])
+def end_turn():
+    data = flask.request.form
+    game_id = bson.objectid.ObjectId(data['gameId'])
+
+    # TODO: validate that a tile has been placed
+    # TODO: validate that all players have 6 tiles in their hands
+
+    db.games.find_one_and_update({'_id': game_id},
+        {
+            '$set': {
+                'turnPlacePhase': False,
+                'turnBuyPhase': False
+            },
+            '$inc': {'turn'},
+        })
+    return flask.jsonify({}), 200
 
 
 @login_manager.user_loader
@@ -108,22 +181,43 @@ def load_user_from_request(request):
 
 
 def _create_game(num_players, players=None):
+    random_bag = range(12*9)
+    starting_board = list(random.sample(random_bag, num_players))
+    turn_num = starting_board.index(min(starting_board))
+    bag = [square for square in random_bag if square not in starting_board]
+    player_hands = list(random.sample(bag, num_players * 6))
+    bag = [s for s in player_hands if s not in player_hands]
     game = {
-        'board': [0] * 108,
+        'bag': bag,
+        'gameOver': False,
+        'hotelLuxorTiles': [],
+        'hotelLuxorShares': [],
+        'hotelTowerTiles': [],
+        'hotelTowerShares': [],
+        'hotelAmericanTiles': [],
+        'hotelAmericanShares': [],
+        'hotelFestivalTiles': [],
+        'hotelFestivalShares': [],
+        'hotelWorldwideTiles': [],
+        'hotelWorldwideShares': [],
+        'hotelContinentalTiles': [],
+        'hotelContinentalShares': [],
+        'hotelImperialTiles': [],
+        'hotelImperialShares': [],
+        'isMergingHotel': False,
+        'maxHotelSize': 0,
+        'numHotelsLeft': 7,
         'numPlayers': num_players,
         'players': [] if players is None else players,
-        'luxor': [],
-        'tower': [],
-        'american': [],
-        'festival': [],
-        'worldwide': [],
-        'continental': [],
-        'imperial': [],
+        'squares': starting_board,
+        'turn': turn_num,
+        'turnBuyPhase': False,
+        'turnPlacePhase': False,
     }
     game['numPlayers'] = num_players
     for num in range(num_players):
         i = str(num)
-        game['hand' + i] = []
+        game['hand' + i] = player_hands[num*6:(num+1)*6]
         game['shares' + i] = []
         game['cash' + i] = []
     return game

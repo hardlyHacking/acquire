@@ -19,12 +19,9 @@ class Board extends React.Component {
     const indexOffset = Math.max(this.props.numColumns, this.props.numRows);
     const squares = Array(props.numRows).fill(Array(props.numColumns).fill(null));
 
-    const numPlayers = props.playerNames.length;
-    const playerFunds = Array(numPlayers).fill(6000);
-    const playerShares = Array(numPlayers).fill(Array(7).fill(0));
-
     this.state = {
       costMatrix: costMatrix,
+      gameId: location.search.split('game_id=')[1],
       gameOver: false,
       indexOffset: indexOffset,
       isCreatingHotel: false,
@@ -41,14 +38,48 @@ class Board extends React.Component {
       maxHotelSize: 0,
       newHotel: new Set(),
       numHotelsLeft: 7,
-      numPlayers: numPlayers,
-      playerFunds: playerFunds,
-      playerShares: playerShares,
       squares: squares,
       turn: 0,
       turnPhaseBuy: false,
       turnPhasePlace: false,
     };
+
+    this.getBoardState = this.getBoardState.bind(this);
+    this.processBoardState = this.processBoardState.bind(this);
+  }
+
+  getBoardState() {
+    $.get({
+      url: 'http://localhost:3000/board/' + this.state.gameId,
+      success: this.processBoardState
+    });
+  }
+
+  processBoardState(data) {
+    const numPlayers = parseInt(data.numPlayers);
+    const playerFunds = Array(numPlayers).fill(6000);
+    const playerShares = Array(numPlayers).fill(Array(7).fill(0));
+    let squaresCopy = this.state.squares.map((row) => { return row.slice(); });
+    data.squares.map((encodedSquare) => {
+      const tileNumber = parseInt(encodedSquare);
+      const row = this.decodeRow(tileNumber);
+      const column = this.decodeColumn(tileNumber);
+      squaresCopy[row][column] = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
+    })
+
+     this.setState({
+       turnPhaseBuy: data.turnPhaseBuy,
+       turnPhasePlace: data.turnPlacePhase,
+       numPlayers: numPlayers,
+       playerFunds: playerFunds,
+       playerShares: playerShares,
+       playerNames: data.players,
+       squares: squaresCopy
+     });
+  }
+
+  componentWillMount() {
+    this.getBoardState();
   }
 
   decodeColumn(i) {
@@ -66,13 +97,16 @@ class Board extends React.Component {
 
   endTurn() {
     if (!this.state.turnPhasePlace) {
-      alert('cannot end turn without placing a tile!');
+      alert('Cannot end turn without placing a tile!');
+      return;
     }
     if (this.state.isCreatingHotel) {
-      alert('cannot end turn during hotel creation!');
+      alert('Cannot end turn during hotel creation!');
+      return;
     }
     if (this.state.isMergingHotel) {
-      alert('cannot end turn during hotel merger!');
+      alert('Cannot end turn during hotel merger!');
+      return;
     }
     this.pickupNewTile();
     this.setState({
@@ -80,6 +114,19 @@ class Board extends React.Component {
       turnPhaseBuy: false,
       turn: this.state.turn + 1,
     });
+
+    $.post({
+      url: 'http://localhost:3000/board/end_turn',
+      dataType: 'json',
+      data: {
+        gameId: this.state.gameId
+      },
+      success: function(data) {
+        alert('Turn ended; please wait for your turn and refresh periodically.');
+      }})
+      .fail(function() {
+        alert('Could not end turn - please refresh and try again.');
+      });
   }
 
   gameOver() {
@@ -215,6 +262,20 @@ class Board extends React.Component {
         squares: squares,
         turnPhasePlace: true,
       });
+
+      $.post({
+        url: 'http://localhost:3000/board/place_tile',
+        dataType: 'json',
+        data: {
+          gameId: this.state.gameId,
+          tile: i
+        },
+        success: function(data) {
+          this.getBoardState();
+        }})
+        .fail(function() {
+          alert('Could not post tile, please refresh and try again');
+        });
     }
   }
 
@@ -300,7 +361,10 @@ class Board extends React.Component {
   }
 
   renderPlayers() {
-    return this.props.playerNames.map((name, index) => {
+    if (this.state.playerNames === undefined) {
+      return null;
+    }
+    return this.state.playerNames.map((name, index) => {
         return <Player
           funds={this.state.playerFunds[index]}
           key={name}
@@ -310,13 +374,17 @@ class Board extends React.Component {
   }
 
   render() {
+    if (this.state.playerNames === undefined) {
+      return null;
+    }
+
     const board = this.renderBoard()
     const mergeHotelModal = this.renderMergingHotelModal();
     const newHotelModal = this.renderNewHotelModal();
     const players = this.renderPlayers();
     return (
       <div>
-        <h4>{this.props.playerNames[this.state.turn % this.state.numPlayers]} to Act</h4>
+        <h4>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h4>
         {this.renderEndTurn()}
         {board}
         {mergeHotelModal}

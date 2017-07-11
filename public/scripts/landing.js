@@ -33,7 +33,7 @@ class NewGame extends React.Component {
       },
       success: function(data) {
         const game_id = data.id;
-        window.location.href = 'http://localhost:3000/game/' + game_id;
+        window.location = 'http://localhost:3000/game?game_id=' + game_id;
       }})
       .fail(function() {
         alert('Failed to create game, please try again.');
