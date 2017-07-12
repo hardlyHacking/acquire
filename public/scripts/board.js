@@ -23,6 +23,7 @@ class Board extends React.Component {
       costMatrix: costMatrix,
       gameId: location.search.split('game_id=')[1],
       gameOver: false,
+      hand: [],
       indexOffset: indexOffset,
       isCreatingHotel: false,
       isMergingHotel: false,
@@ -68,14 +69,15 @@ class Board extends React.Component {
     })
 
      this.setState({
-       turn: data.turn,
-       turnPhaseBuy: data.turnPhaseBuy,
-       turnPhasePlace: data.turnPlacePhase,
+       hand: data.hand,
        numPlayers: numPlayers,
        playerFunds: playerFunds,
-       playerShares: playerShares,
        playerNames: data.players,
-       squares: squaresCopy
+       playerShares: playerShares,
+       squares: squaresCopy,
+       turn: data.turn,
+       turnPhaseBuy: data.turnPhaseBuy,
+       turnPhasePlace: data.turnPlacePhase
      });
   }
 

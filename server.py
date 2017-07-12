@@ -103,8 +103,15 @@ def join_game(game_id, user_id):
 def board_state(game_id):
     real_id = bson.objectid.ObjectId(game_id)
     game = db.games.find_one({'_id': real_id})
+
     if game is None:
         return flask.jsonify({}), 404
+
+    hand_num = game['turn'] % game['numPlayers']
+    hand = game['hand' + str(hand_num)]
+    for i in range(game['numPlayers']):
+        game.pop('hand' + str(i))
+    game['hand'] = hand
     return flask.jsonify(json.loads(bson.json_util.dumps(game))), 200
 
 
