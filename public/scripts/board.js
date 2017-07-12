@@ -297,6 +297,17 @@ class Board extends React.Component {
     });
   }
 
+  renderHand() {
+    let hand = this.state.hand.map((tile) => {
+      return this.renderSquare(tile);
+    });
+    return(
+      <div className="board-row">
+        {hand}
+      </div>
+    );
+  }
+
   renderBuyPhase() {
     if (this.state.numHotelsLeft === 7) {
       return null;
@@ -381,7 +392,8 @@ class Board extends React.Component {
       return null;
     }
 
-    const board = this.renderBoard()
+    const board = this.renderBoard();
+    const hand = this.renderHand();
     const mergeHotelModal = this.renderMergingHotelModal();
     const newHotelModal = this.renderNewHotelModal();
     const players = this.renderPlayers();
@@ -390,6 +402,8 @@ class Board extends React.Component {
         <h4>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h4>
         {this.renderEndTurn()}
         {board}
+        <h4>Tiles in Hand</h4>
+        {hand}
         {mergeHotelModal}
         {newHotelModal}
         <div className="status">{players}</div>
