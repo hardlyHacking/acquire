@@ -121,12 +121,23 @@ def place_tile():
     game_id, tile_number = data['gameId'], int(data['tile'])
     real_id = bson.objectid.ObjectId(game_id)
 
+    game = db.games.find_one({'_id': real_id})
+    if game is None:
+        return flask.jsonify({}), 404
+
     # TODO: validate that a tile has not already been placed
+
+    hand_num = game['turn'] % game['numPlayers']
+    hand = game['hand' + str(hand_num)]
+    hand.remove(tile_number)
 
     db.games.find_one_and_update({'_id': real_id},
         {
             '$push': {'squares': tile_number},
-            '$set': {'turnPlacePhase': True},
+            '$set': {
+                'hand' + str(hand_num): hand,
+                'turnPlacePhase': True,
+            },
         })
 
     return flask.jsonify({}), 200
