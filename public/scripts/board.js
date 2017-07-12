@@ -213,6 +213,11 @@ class Board extends React.Component {
   }
 
   handleSquareClick(i) {
+    if (this.state.hand.indexOf(i) < 0) {
+      alert('This tile is not in your hand!');
+      return;
+    }
+
     const squares = this.state.squares.map((row) => { return row.slice(); }),
           column = this.decodeColumn(i),
           row = this.decodeRow(i);
@@ -297,17 +302,6 @@ class Board extends React.Component {
     });
   }
 
-  renderHand() {
-    let hand = this.state.hand.map((tile) => {
-      return this.renderSquare(tile);
-    });
-    return(
-      <div className="board-row">
-        {hand}
-      </div>
-    );
-  }
-
   renderBuyPhase() {
     if (this.state.numHotelsLeft === 7) {
       return null;
@@ -332,6 +326,20 @@ class Board extends React.Component {
 
   renderGameOver() {
     return null;
+  }
+
+  renderHand() {
+    let hand = this.state.hand.map((tile) => {
+      const row = this.decodeRow(tile);
+      const column = this.decodeColumn(tile);
+      const value = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
+      return <Square key={tile} value={value} />
+    });
+    return(
+      <div className="board-row">
+        {hand}
+      </div>
+    );
   }
 
   renderMergingHotelModal() {
