@@ -127,6 +127,7 @@ def place_tile():
 
     # TODO: validate that a tile has not already been placed
 
+    # TODO: use $pull on the mongo-db side instead of in-memory here
     hand_num = game['turn'] % game['numPlayers']
     hand = game['hand' + str(hand_num)]
     hand.remove(tile_number)
@@ -147,11 +148,10 @@ def place_tile():
 def new_tile():
     data = flask.request.form
     game_id = bson.objectid.ObjectId(data['gameId'])
-
     game = db.games.find_one({'_id': game_id})
+    hand_label = str(game['turn'] % game['numPlayers'])
 
     # TODO: validate that the current player only has 5 tiles in hand
-    hand_label = str(game['turn'] % game['numPlayers'])
     if len(game['hand' + hand_label]) != 5:
         pass
 
@@ -159,14 +159,16 @@ def new_tile():
     if not game['turnPlacePhase']:
         pass
 
-    tile = random.sample(game['bag'], 1)
+    # TODO: use $pull on the mongo-db side instead of in-memory here
+    tile = random.sample(game['bag'], 1)[0]
     game['bag'].remove(tile)
-    game['hand' + hand_label].append(tile)
-    db.games.find_one_and_update({'+id': game_id},
+    db.games.find_one_and_update({'_id': game_id},
         {
             '$set': {
-                'hand' + hand_label: game['hand' + hand_label],
                 'bag': game['bag'],
+            },
+            '$push': {
+                'hand' + hand_label: tile,
             },
         })
 
@@ -204,7 +206,7 @@ def _create_game(num_players, players=None):
     turn_num = starting_board.index(min(starting_board))
     bag = [square for square in random_bag if square not in starting_board]
     player_hands = list(random.sample(bag, num_players * 6))
-    bag = [s for s in player_hands if s not in player_hands]
+    bag = [s for s in bag if s not in player_hands]
     game = {
         'bag': bag,
         'gameOver': False,

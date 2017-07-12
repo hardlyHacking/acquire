@@ -47,6 +47,7 @@ class Board extends React.Component {
 
     this.getBoardState = this.getBoardState.bind(this);
     this.processBoardState = this.processBoardState.bind(this);
+    this.processNewTile = this.processNewTile.bind(this);
   }
 
   getBoardState() {
@@ -131,24 +132,6 @@ class Board extends React.Component {
       return;
     }
     this.pickupNewTile();
-    this.setState({
-      turnPhasePlace: false,
-      turnPhaseBuy: false,
-      turn: this.state.turn + 1,
-    });
-
-    $.post({
-      url: 'http://localhost:3000/board/end_turn',
-      dataType: 'json',
-      data: {
-        gameId: this.state.gameId
-      },
-      success: function(data) {
-        alert('Turn ended; please wait for your turn and refresh periodically.');
-      }})
-      .fail(function() {
-        alert('Could not end turn - please refresh and try again.');
-      });
   }
 
   gameOver() {
@@ -315,16 +298,49 @@ class Board extends React.Component {
           gameId: this.state.gameId,
           tile: i
         },
-        success: function(data) {
-          this.getBoardState();
-        }})
+        success: this.getBoardState
+        })
         .fail(function() {
           alert('Could not post tile, please refresh and try again');
         });
     }
   }
 
-  pickupNewTile() {}
+  pickupNewTile() {
+    $.post({
+      url: 'http://localhost:3000/board/new_tile',
+      dataType: 'json',
+      data: { gameId: this.state.gameId },
+      success: this.processNewTile
+      })
+      .fail(function() {
+        alert('Could not pick up new tile');
+      })
+  }
+
+  processNewTile(data) {
+    const newHand = this.state.hand.slice();
+    newHand.push(data.tile);
+    this.setState({
+      hand: newHand,
+      turnPhasePlace: false,
+      turnPhaseBuy: false,
+      turn: this.state.turn + 1
+    });
+
+    $.post({
+      url: 'http://localhost:3000/board/end_turn',
+      dataType: 'json',
+      data: {
+        gameId: this.state.gameId
+      },
+      success: function(data) {
+        alert('Turn ended; please wait for your turn and refresh periodically.');
+      }})
+      .fail(function() {
+        alert('Could not end turn - please refresh and try again.');
+      });
+  }
 
   renderBoard() {
     return this.state.squares.map((row, rowNum) => {
