@@ -85,14 +85,33 @@ class Board extends React.Component {
     this.getBoardState();
   }
 
+  /*
+   * Convert a raw tile number into a column number.
+   */
   decodeColumn(i) {
     return i % this.props.numColumns;
   }
 
+  /*
+   * Convert a raw tile number into a row number.
+   */
   decodeRow(i) {
     return Math.floor(i / this.props.numColumns);
   }
 
+  /*
+   * Conver a raw tile number into its string value representation.
+   * E.G. 0 -> "A1"
+   */
+  decodeValue(i) {
+    const column = this.decodeColumn(i);
+    const row = this.decodeRow(i);
+    return String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
+  }
+
+  /*
+   * Convert a row and column into a raw tile number.
+   */
   encodeCoordinate(column, row) {
     const numColumns = this.state.squares[0].length;
     return row * numColumns + column;
@@ -144,6 +163,9 @@ class Board extends React.Component {
     return gameOver;
   }
 
+  /*
+   * Given a raw tile number, get the hotel occupying that tile.
+   */
   getHotel(i) {
     for (let hotel in this.state.hotels) {
       if (this.state.hotels[hotel].has(i)) {
@@ -153,6 +175,9 @@ class Board extends React.Component {
     return null;
   }
 
+  /*
+   * Fetch a particular tile in the state given row and column numbers.
+   */
   getSquareByIndex(i) {
     const column = this.decodeColumn(i);
     const row = this.decodeRow(i);
@@ -169,6 +194,11 @@ class Board extends React.Component {
     return new Set(hotels);
   }
 
+  /*
+   * Get the (up to) four squares surrounding a given tile.
+   * Diagonals are not included.
+   * All parameters and return types are in the raw tile number format.
+   */
   getSurroundingSquares(i) {
     const column = this.decodeColumn(i);
     const row = this.decodeRow(i);
@@ -213,9 +243,16 @@ class Board extends React.Component {
   }
 
   handleSquareClick(i) {
-    if (this.state.hand.indexOf(i) < 0) {
+    const tileIndex = this.state.hand.indexOf(i);
+    if (tileIndex < 0) {
       alert('This tile is not in your hand!');
       return;
+    } else {
+      const newHand = this.state.hand.slice();
+      newHand.splice(tileIndex, 1);
+      this.setState({
+        hand: newHand
+      });
     }
 
     const squares = this.state.squares.map((row) => { return row.slice(); }),
@@ -236,7 +273,7 @@ class Board extends React.Component {
       return;
     }
 
-    squares[row][column] = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
+    squares[row][column] = this.decodeValue(i);
     if (doesMakeHotel) {
       this.setState({
         isCreatingHotel: true,
@@ -330,9 +367,7 @@ class Board extends React.Component {
 
   renderHand() {
     let hand = this.state.hand.map((tile) => {
-      const row = this.decodeRow(tile);
-      const column = this.decodeColumn(tile);
-      const value = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
+      const value = this.decodeValue(tile);
       return <Square key={tile} value={value} />
     });
     return(
