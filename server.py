@@ -167,9 +167,9 @@ def end_turn():
         {
             '$set': {
                 'turnPlacePhase': False,
-                'turnBuyPhase': False
+                'turnBuyPhase': False,
             },
-            '$inc': {'turn'},
+            '$inc': { 'turn': 1 },
         })
     return flask.jsonify({}), 200
 

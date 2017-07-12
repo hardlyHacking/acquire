@@ -68,6 +68,7 @@ class Board extends React.Component {
     })
 
      this.setState({
+       turn: data.turn,
        turnPhaseBuy: data.turnPhaseBuy,
        turnPhasePlace: data.turnPlacePhase,
        numPlayers: numPlayers,
