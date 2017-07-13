@@ -167,6 +167,11 @@ class Board extends React.Component {
     return this.state.squares[row][column];
   }
 
+  /*
+   * Given a set of surrounding (occupied) squares and an origin square i
+   * (all squares in absolute tile number positioning), return a set of
+   * hotels represented by the surrounding squares.
+   */
   getSurroundingHotels(i, surroundingSquares) {
     if (surroundingSquares.length === 0) {
       return new Set();
@@ -178,7 +183,7 @@ class Board extends React.Component {
   }
 
   /*
-   * Get the (up to) four squares surrounding a given tile.
+   * Get the (up to) four occupied squares surrounding a given tile.
    * Diagonals are not included.
    * All parameters and return types are in the raw tile number format.
    */
@@ -226,24 +231,30 @@ class Board extends React.Component {
   }
 
   handleSquareClick(i) {
+    // Cannot place a tile if one has already been placed this turn
+    // Cannot place a tile during hotel creation
+    if (this.state.turnPlacePhase || this.state.isCreatingHotel) {
+      return;
+    }
+
     const inHand = this.state.hand.has(i);
     if (!inHand) {
-      alert('This tile is not in your hand!');
       return;
-    } else {
-      const newHand = new Set(this.state.hand);
-      newHand.delete(i);
-      this.setState({
-        hand: newHand
-      });
     }
 
     const squares = this.state.squares.map((row) => { return row.slice(); }),
           column = this.decodeColumn(i),
           row = this.decodeRow(i);
-    if (this.state.turnPhasePlace || this.state.isCreatingHotel || squares[row][column]) {
+    // Square is already taken with another tile
+    if (squares[row][column]) {
       return;
     }
+
+    const newHand = new Set(this.state.hand);
+    newHand.delete(i);
+    this.setState({
+      hand: newHand
+    });
 
     const surroundingSquares = this.getSurroundingSquares(i),
           surroundingHotels = this.getSurroundingHotels(i, surroundingSquares),
@@ -251,26 +262,36 @@ class Board extends React.Component {
           isJoiningHotel = surroundingHotels.size === 1,
           isMerger = surroundingHotels.size > 1;
 
-    if (this.state.numHotelsLeft === 0 && this.doesMakeHotel(i)) {
-      alert('All available hotels are in use.');
+    const numSafeHotels = Array.from(surroundingHotels).filter((name) => {
+      return this.state.hotels.name.size > 10;
+    });
+    // Cannot merge two or more safe hotels
+    if (numSafeHotels > 1) {
+      return;
+    }
+
+    // Cannot form a hotel if all available hotels are already on the board
+    if (this.state.numHotelsLeft === 0 && doesMakeHotel) {
       return;
     }
 
     squares[row][column] = this.decodeValue(i);
+    this.setState({
+      squares: squares,
+      turnPhasePlace: true
+    });
+
     if (doesMakeHotel) {
       this.setState({
         isCreatingHotel: true,
-        newHotel: new Set([i, surroundingSquares[0]]),
-        squares: squares,
-        turnPhasePlace: true,
+        newHotel: new Set([i, surroundingSquares[0]])
       });
       return;
     }
 
     if (isMerger) {
       this.setState({
-        isMergingHotel: true,
-        turnPhasePlace: true,
+        isMergingHotel: true
       });
       return;
     }
@@ -281,16 +302,22 @@ class Board extends React.Component {
       let copyHotels = Object.assign({}, this.state.hotels);
       copyHotels[hotelName] = newHotelSet;
       this.setState({
-        hotels: copyHotels,
-        squares: squares,
-        turnPhasePlace: true,
+        hotels: copyHotels
+      });
+      $.post({
+        url: 'http://localhost:3000/board/place_tile',
+        dataType: 'json',
+        data: {
+          gameId: this.state.gameId,
+          hotel: hotelName,
+          tile: i
+        },
+        success: this.getBoardState
+      })
+      .fail(function() {
+        alert('Could not post tile, please refresh and try again');
       });
     } else {
-      this.setState({
-        squares: squares,
-        turnPhasePlace: true,
-      });
-
       $.post({
         url: 'http://localhost:3000/board/place_tile',
         dataType: 'json',
