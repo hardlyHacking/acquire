@@ -28,7 +28,10 @@ class Square extends React.Component {
   }
 
   render() {
-    const color = this.state.hovered ? '#A9A9A9' : this.getDefaultColor();
+    let color = this.state.hovered ? '#A9A9A9' : this.getDefaultColor();
+    if (this.props.inHand) {
+      color = '#E6B0AA';
+    }
     const buttonStyle = { backgroundColor: color };
     return (
       <button className="square" style={buttonStyle}

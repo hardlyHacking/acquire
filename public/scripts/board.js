@@ -23,7 +23,7 @@ class Board extends React.Component {
       costMatrix: costMatrix,
       gameId: location.search.split('game_id=')[1],
       gameOver: false,
-      hand: [],
+      hand: new Set(),
       indexOffset: indexOffset,
       isCreatingHotel: false,
       isMergingHotel: false,
@@ -70,7 +70,7 @@ class Board extends React.Component {
     })
 
      this.setState({
-       hand: data.hand,
+       hand: new Set(data.hand),
        numPlayers: numPlayers,
        playerFunds: playerFunds,
        playerNames: data.players,
@@ -226,13 +226,13 @@ class Board extends React.Component {
   }
 
   handleSquareClick(i) {
-    const tileIndex = this.state.hand.indexOf(i);
-    if (tileIndex < 0) {
+    const inHand = this.state.hand.has(i);
+    if (!inHand) {
       alert('This tile is not in your hand!');
       return;
     } else {
-      const newHand = this.state.hand.slice();
-      newHand.splice(tileIndex, 1);
+      const newHand = new Set(this.state.hand);
+      newHand.delete(i);
       this.setState({
         hand: newHand
       });
@@ -319,8 +319,8 @@ class Board extends React.Component {
   }
 
   processNewTile(data) {
-    const newHand = this.state.hand.slice();
-    newHand.push(data.tile);
+    const newHand = new Set(this.state.hand);
+    newHand.add(data.tile);
     this.setState({
       hand: newHand,
       turnPhasePlace: false,
@@ -382,7 +382,7 @@ class Board extends React.Component {
   }
 
   renderHand() {
-    let hand = this.state.hand.map((tile) => {
+    let hand = Array.from(this.state.hand).map((tile) => {
       const value = this.decodeValue(tile);
       return <Square key={tile} value={value} />
     });
@@ -426,7 +426,7 @@ class Board extends React.Component {
           hotel = Object.keys(this.state.hotels).filter((hotelName) => {
             return this.state.hotels[hotelName].has(i); });
     return <Square key={i} hotel={hotel.length === 1 ? hotel[0] : null} value={value}
-      onClick={() => this.handleSquareClick(i)} />
+      onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}/>
   }
 
   renderPlayer(player) {
