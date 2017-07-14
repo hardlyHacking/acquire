@@ -121,11 +121,14 @@ def place_tile():
     game_id, tile_number = data['gameId'], int(data['tile'])
     real_id = bson.objectid.ObjectId(game_id)
 
+    # Validate this is a real game
     game = db.games.find_one({'_id': real_id})
     if game is None:
         return flask.jsonify({}), 404
 
-    # TODO: validate that a tile has not already been placed
+    # Validate that a tile has not already been placed
+    if tile_number in game['squares']:
+        return flask.jsonify({}), 400
 
     # TODO: use $pull on the mongo-db side instead of in-memory here
     hand_num = game['turn'] % game['numPlayers']
@@ -134,10 +137,56 @@ def place_tile():
 
     db.games.find_one_and_update({'_id': real_id},
         {
-            '$push': {'squares': tile_number},
+            '$push': {
+                'squares': tile_number
+            },
             '$set': {
                 'hand' + str(hand_num): hand,
                 'turnPlacePhase': True,
+            },
+        })
+
+    return flask.jsonify({}), 200
+
+
+@app.route('/board/new_hotel', methods=['POST'])
+def new_hotel():
+    data = flask.request.form
+    game_id = bson.objectid.ObjectId(data['gameId'])
+    tile_number = int(data['tile'])
+
+    # Validate this is a real game
+    game = db.games.find_one({'_id': game_id})
+    if game is None:
+        return flask.jsonify({}), 404
+
+    # Validate that a tile has not already been placed
+    if tile_number in game['squares']:
+        return flask.jsonify({}), 400
+
+    # TODO: use $pull on the mongo-db side instead of in-memory here
+    hand_num = game['turn'] % game['numPlayers']
+    hand = game['hand' + str(hand_num)]
+    hand.remove(tile_number)
+
+    # Validate hotel is not already created
+    hotel_name = data['hotelName']
+    hotel_tiles = data.getlist('hotelTiles[]')
+    if game['numHotelsLeft'] < 1 or \
+       len(game[hotel_name]) > 0:
+       return flask.jsonify({}), 400
+
+    db.games.find_one_and_update({'_id': game_id},
+        {
+            '$set': {
+                'hand' + str(hand_num): hand,
+                hotel_name: hotel_tiles,
+            },
+            '$push': {
+                'squares': tile_number,
+            },
+            '$inc': {
+                'numHotelsLeft': -1,
             },
         })
 
