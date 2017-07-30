@@ -276,12 +276,6 @@ class Board extends React.Component {
       return;
     }
 
-    const newHand = new Set(this.state.hand);
-    newHand.delete(i);
-    this.setState({
-      hand: newHand
-    });
-
     const surroundingSquares = this.getSurroundingSquares(i),
           surroundingHotels = this.getSurroundingHotels(i, surroundingSquares),
           doesMakeHotel = surroundingSquares.length >= 1 && surroundingHotels.size === 0,
@@ -298,11 +292,17 @@ class Board extends React.Component {
 
     // Cannot form a hotel if all available hotels are already on the board
     if (this.state.numHotelsLeft === 0 && doesMakeHotel) {
+      alert(`All available hotels are in use.\n
+            Please wait for mergers to occur before refounding.\n
+            In the meantime, select another tile.`);
       return;
     }
 
+    const newHand = new Set(this.state.hand);
+    newHand.delete(i);
     squares[row][column] = this.decodeValue(i);
     this.setState({
+      hand: newHand,
       squares: squares,
       turnPlacePhase: true
     });
