@@ -7,7 +7,7 @@ class HotelPick extends React.Component {
   }
 
   getDefaultColor() {
-    switch (this.props.name) {
+    switch (this.props.name.toLowerCase()) {
       case 'american':
         return '#4169E1';
       case 'continental':

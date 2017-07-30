@@ -8,19 +8,19 @@ class Square extends React.Component {
 
   getDefaultColor() {
     switch (this.props.hotel) {
-      case 'american':
+      case 'American':
         return '#4169E1';
-      case 'continental':
+      case 'Continental':
         return '#48D1CC';
-      case 'festival':
+      case 'Festival':
         return '#6B8E23';
-      case 'imperial':
+      case 'Imperial':
         return '#DA70D6';
-      case 'luxor':
+      case 'Luxor':
         return '#FF6347';
-      case 'tower':
+      case 'Tower':
         return '#FFD700';
-      case 'worldwide':
+      case 'Worldwide':
         return '#D2691E';
       default:
         return '#FFFFFF';
@@ -28,7 +28,16 @@ class Square extends React.Component {
   }
 
   render() {
-    const color = this.state.hovered ? '#A9A9A9' : this.getDefaultColor();
+    let color;
+    if (this.props.inHand && this.state.hovered) {
+      color = '#E8DAEF';
+    } else if (this.props.inHand) {
+      color = '#E6B0AA';
+    } else  if (this.state.hovered) {
+      color = '#A9A9A9';
+    } else {
+      color = this.getDefaultColor();
+    }
     const buttonStyle = { backgroundColor: color };
     return (
       <button className="square" style={buttonStyle}

@@ -23,26 +23,24 @@ class Board extends React.Component {
       costMatrix: costMatrix,
       gameId: location.search.split('game_id=')[1],
       gameOver: false,
-      hand: [],
+      hand: new Set(),
       indexOffset: indexOffset,
       isCreatingHotel: false,
       isMergingHotel: false,
-      hotels: {
-        'american': new Set(),
-        'continental': new Set(),
-        'festival': new Set(),
-        'imperial': new Set(),
-        'luxor': new Set(),
-        'tower': new Set(),
-        'worldwide': new Set(),
-      },
+      hotelAmericanTiles: new Set(),
+      hotelContinentalTiles: new Set(),
+      hotelFestivalTiles: new Set(),
+      hotelImperialTiles: new Set(),
+      hotelLuxorTiles: new Set(),
+      hotelTowerTiles: new Set(),
+      hotelWorldwideTiles: new Set(),
       maxHotelSize: 0,
       newHotel: new Set(),
       numHotelsLeft: 7,
       squares: squares,
       turn: 0,
       turnPhaseBuy: false,
-      turnPhasePlace: false,
+      turnPlacePhase: false,
     };
 
     this.getBoardState = this.getBoardState.bind(this);
@@ -67,19 +65,27 @@ class Board extends React.Component {
       const row = this.decodeRow(tileNumber);
       const column = this.decodeColumn(tileNumber);
       squaresCopy[row][column] = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
-    })
+    });
 
-     this.setState({
-       hand: data.hand,
-       numPlayers: numPlayers,
-       playerFunds: playerFunds,
-       playerNames: data.players,
-       playerShares: playerShares,
-       squares: squaresCopy,
-       turn: data.turn,
-       turnPhaseBuy: data.turnPhaseBuy,
-       turnPhasePlace: data.turnPlacePhase
-     });
+    this.setState({
+      hand: new Set(data.hand),
+      hotelAmericanTiles: new Set(data.hotelAmericanTiles.map((i) => { return parseInt(i); })),
+      hotelContinentalTiles: new Set(data.hotelContinentalTiles.map((i) => { return parseInt(i); })),
+      hotelFestivalTiles: new Set(data.hotelFestivalTiles.map((i) => { return parseInt(i); })),
+      hotelImperialTiles: new Set(data.hotelImperialTiles.map((i) => { return parseInt(i); })),
+      hotelLuxorTiles: new Set(data.hotelLuxorTiles.map((i) => { return parseInt(i); })),
+      hotelTowerTiles: new Set(data.hotelTowerTiles.map((i) => { return parseInt(i); })),
+      hotelWorldwideTiles: new Set(data.hotelWorldwideTiles.map((i) => { return parseInt(i); })),
+      numHotelsLeft: data.numHotelsLeft,
+      numPlayers: numPlayers,
+      playerFunds: playerFunds,
+      playerNames: data.players,
+      playerShares: playerShares,
+      squares: squaresCopy,
+      turn: data.turn,
+      turnPhaseBuy: data.turnPhaseBuy,
+      turnPlacePhase: data.turnPlacePhase
+    });
   }
 
   componentWillMount() {
@@ -119,7 +125,7 @@ class Board extends React.Component {
   }
 
   endTurn() {
-    if (!this.state.turnPhasePlace) {
+    if (!this.state.turnPlacePhase) {
       alert('Cannot end turn without placing a tile!');
       return;
     }
@@ -135,8 +141,9 @@ class Board extends React.Component {
   }
 
   gameOver() {
-    const hotelSizes = Object.keys(this.state.hotels)
-      .map((name) => { return this.state.hotels[name].size; });
+    const hotelSizes = this.getHotelArray().map((key) => {
+      return this.state.key.size;
+    });
     const maxHotel = Math.max(...hotelSizes);
     const safeChains = hotelSizes.filter((size) => { return size >= 11; });
     const gameOver = maxHotel >= 41 || safeChains.length === 7;
@@ -150,12 +157,18 @@ class Board extends React.Component {
    * Given a raw tile number, get the hotel occupying that tile.
    */
   getHotel(i) {
-    for (let hotel in this.state.hotels) {
-      if (this.state.hotels[hotel].has(i)) {
-        return hotel;
-      }
-    }
-    return null;
+    const hotels = this.getHotelArray().filter((name) => {
+      return this.state[name].has(i);
+    });
+
+    return hotels.length === 1 ? hotels[0] : null;
+  }
+
+  /*
+   * Returns the set of hotels in the game.
+   */
+  getHotelArray() {
+    return Object.keys(this.state).filter((key) => { return key.startsWith('hotel'); });
   }
 
   /*
@@ -167,6 +180,11 @@ class Board extends React.Component {
     return this.state.squares[row][column];
   }
 
+  /*
+   * Given a set of surrounding (occupied) squares and an origin square i
+   * (all squares in absolute tile number positioning), return a set of
+   * hotels represented by the surrounding squares.
+   */
   getSurroundingHotels(i, surroundingSquares) {
     if (surroundingSquares.length === 0) {
       return new Set();
@@ -178,7 +196,7 @@ class Board extends React.Component {
   }
 
   /*
-   * Get the (up to) four squares surrounding a given tile.
+   * Get the (up to) four occupied squares surrounding a given tile.
    * Diagonals are not included.
    * All parameters and return types are in the raw tile number format.
    */
@@ -214,96 +232,119 @@ class Board extends React.Component {
   }
 
   handleHotelPickClick(name) {
-    const newSquares = this.state.newHotel;
-    let copyHotels = Object.assign({}, this.state.hotels);
-    copyHotels[name] = this.state.newHotel;
-    this.setState({
-      hotels: copyHotels,
-      isCreatingHotel: false,
-      newHotel: new Set(),
-      numHotelsLeft: this.state.numHotelsLeft - 1,
+    $.post({
+      url: 'http://localhost:3000/board/new_hotel',
+      data: {
+        gameId: this.state.gameId,
+        hotelName: name,
+        hotelTiles: this.state.newHotel,
+        tile: this.state.temporaryTile
+      },
+      success: this.getBoardState
     });
+
+    const newState = function(name, numHotelsLeft, newHotel) {
+      let stateObject = {
+        isCreatingHotel: false,
+        newHotel: [],
+        numHotelsLeft: numHotelsLeft - 1,
+        turnPlacePhase: true
+      };
+      stateObject[`${name}`] = new Set(newHotel);
+      return stateObject;
+    }
+    this.setState(newState(name, this.state.numHotelsLeft, this.state.newHotel));
   }
 
   handleSquareClick(i) {
-    const tileIndex = this.state.hand.indexOf(i);
-    if (tileIndex < 0) {
-      alert('This tile is not in your hand!');
+    // Cannot place a tile if one has already been placed this turn
+    // Cannot place a tile during hotel creation
+    if (this.state.turnPlacePhase || this.state.isCreatingHotel) {
       return;
-    } else {
-      const newHand = this.state.hand.slice();
-      newHand.splice(tileIndex, 1);
-      this.setState({
-        hand: newHand
-      });
+    }
+
+    const inHand = this.state.hand.has(i);
+    if (!inHand) {
+      return;
     }
 
     const squares = this.state.squares.map((row) => { return row.slice(); }),
           column = this.decodeColumn(i),
           row = this.decodeRow(i);
-    if (this.state.turnPhasePlace || this.state.isCreatingHotel || squares[row][column]) {
+    // Square is already taken with another tile
+    if (squares[row][column]) {
       return;
     }
 
     const surroundingSquares = this.getSurroundingSquares(i),
           surroundingHotels = this.getSurroundingHotels(i, surroundingSquares),
-          doesMakeHotel = surroundingSquares.length === 1 && surroundingHotels.size === 0,
+          doesMakeHotel = surroundingSquares.length >= 1 && surroundingHotels.size === 0,
           isJoiningHotel = surroundingHotels.size === 1,
           isMerger = surroundingHotels.size > 1;
 
-    if (this.state.numHotelsLeft === 0 && this.doesMakeHotel(i)) {
-      alert('All available hotels are in use.');
+    const numSafeHotels = Array.from(surroundingHotels).filter((name) => {
+      return this.state[`hotel${name}Tiles`].size > 10;
+    });
+    // Cannot merge two or more safe hotels
+    if (numSafeHotels > 1) {
       return;
     }
 
+    // Cannot form a hotel if all available hotels are already on the board
+    if (this.state.numHotelsLeft === 0 && doesMakeHotel) {
+      alert(`All available hotels are in use.\n
+            Please wait for mergers to occur before refounding.\n
+            In the meantime, select another tile.`);
+      return;
+    }
+
+    const newHand = new Set(this.state.hand);
+    newHand.delete(i);
     squares[row][column] = this.decodeValue(i);
+    this.setState({
+      hand: newHand,
+      squares: squares,
+      turnPlacePhase: true
+    });
+
     if (doesMakeHotel) {
+      surroundingSquares.push(i);
       this.setState({
         isCreatingHotel: true,
-        newHotel: new Set([i, surroundingSquares[0]]),
-        squares: squares,
-        turnPhasePlace: true,
+        newHotel: surroundingSquares,
+        temporaryTile: i
       });
       return;
     }
 
     if (isMerger) {
       this.setState({
-        isMergingHotel: true,
-        turnPhasePlace: true,
+        isMergingHotel: true
       });
       return;
     }
 
     if (isJoiningHotel) {
+      surroundingSquares.push(i);
       const hotelName = surroundingHotels.values().next().value;
-      const newHotelSet = this.state.hotels[hotelName].add(i);
-      let copyHotels = Object.assign({}, this.state.hotels);
-      copyHotels[hotelName] = newHotelSet;
-      this.setState({
-        hotels: copyHotels,
-        squares: squares,
-        turnPhasePlace: true,
-      });
-    } else {
-      this.setState({
-        squares: squares,
-        turnPhasePlace: true,
-      });
-
-      $.post({
-        url: 'http://localhost:3000/board/place_tile',
-        dataType: 'json',
-        data: {
-          gameId: this.state.gameId,
-          tile: i
-        },
-        success: this.getBoardState
-        })
-        .fail(function() {
-          alert('Could not post tile, please refresh and try again');
-        });
+      const newHotel = Array.from(this.state[`hotel${hotelName}Tiles`]).concat(surroundingSquares);
+      let newState = {};
+      newState[`hotel${hotelName}Tiles`] = new Set(newHotelArray);
+      this.setState(newState);
     }
+
+    $.post({
+      url: 'http://localhost:3000/board/place_tile',
+      dataType: 'json',
+      data: {
+        gameId: this.state.gameId,
+        tile: i
+      },
+      success: this.getBoardState
+      })
+      .fail(function() {
+        alert('Could not post tile, please refresh and try again');
+      });
   }
 
   pickupNewTile() {
@@ -319,11 +360,11 @@ class Board extends React.Component {
   }
 
   processNewTile(data) {
-    const newHand = this.state.hand.slice();
-    newHand.push(data.tile);
+    const newHand = new Set(this.state.hand);
+    newHand.add(data.tile);
     this.setState({
       hand: newHand,
-      turnPhasePlace: false,
+      turnPlacePhase: false,
       turnPhaseBuy: false,
       turn: this.state.turn + 1
     });
@@ -334,9 +375,7 @@ class Board extends React.Component {
       data: {
         gameId: this.state.gameId
       },
-      success: function(data) {
-        alert('Turn ended; please wait for your turn and refresh periodically.');
-      }})
+      success: this.getBoardState })
       .fail(function() {
         alert('Could not end turn - please refresh and try again.');
       });
@@ -382,7 +421,7 @@ class Board extends React.Component {
   }
 
   renderHand() {
-    let hand = this.state.hand.map((tile) => {
+    let hand = Array.from(this.state.hand).map((tile) => {
       const value = this.decodeValue(tile);
       return <Square key={tile} value={value} />
     });
@@ -402,16 +441,19 @@ class Board extends React.Component {
 
   renderNewHotelModal() {
     if (this.state.isCreatingHotel) {
-      const newHotels = Object.keys(this.state.hotels)
-        .filter((name) => { return this.state.hotels[name].size === 0; });
+      const newHotels = this.getHotelArray().filter((name) => {
+        return this.state[name].size === 0;
+      });
       if (this.state.numHotelsLeft !== newHotels.length) {
         throw '(numHotelsLeft, newHotels): ' + this.state.numHotelsLeft + ',' + newHotels.length;
       }
       const hotels = newHotels.map((hotel) => {
-        return <HotelPick key={hotel} name={hotel} onClick={() => this.handleHotelPickClick(hotel)} />;
+        const name = hotel.split('Tiles')[0].split('hotel')[1];
+        return <HotelPick key={hotel} name={name} onClick={() => this.handleHotelPickClick(hotel)} />;
       });
       return (
         <div className="hotel-pick">
+          <h4>Choose a Hotel</h4>
           {hotels}
         </div>
       );
@@ -423,10 +465,11 @@ class Board extends React.Component {
     const row = this.decodeRow(i),
           column = this.decodeColumn(i),
           value = this.state.squares[row][column],
-          hotel = Object.keys(this.state.hotels).filter((hotelName) => {
-            return this.state.hotels[hotelName].has(i); });
-    return <Square key={i} hotel={hotel.length === 1 ? hotel[0] : null} value={value}
-      onClick={() => this.handleSquareClick(i)} />
+          hotel = this.getHotelArray().filter((name) => {
+            return this.state[name].has(i); });
+    const hotelName = hotel.length === 1 ? hotel[0].split('Tiles')[0].split('hotel')[1] : null;
+    return <Square key={i} hotel={hotelName} value={value}
+      onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}/>
   }
 
   renderPlayer(player) {
