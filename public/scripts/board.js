@@ -40,7 +40,7 @@ class Board extends React.Component {
       squares: squares,
       turn: 0,
       turnPhaseBuy: false,
-      turnPhasePlace: false,
+      turnPlacePhase: false,
     };
 
     this.getBoardState = this.getBoardState.bind(this);
@@ -65,26 +65,27 @@ class Board extends React.Component {
       const row = this.decodeRow(tileNumber);
       const column = this.decodeColumn(tileNumber);
       squaresCopy[row][column] = String.fromCharCode('A'.charCodeAt(0) + row) + String(column + 1);
-    })
+    });
 
-     this.setState({
-       hand: new Set(data.hand),
-       hotelAmericanTiles: new Set(data.hotelAmericanTiles),
-       hotelContinentalTiles: new Set(data.hotelContinentalTiles),
-       hotelFestivalTiles: new Set(data.hotelFestivalTiles),
-       hotelImperialTiles: new Set(data.hotelImperialTiles),
-       hotelLuxorTiles: new Set(data.hotelLuxorTiles),
-       hotelTowerTiles: new Set(data.hotelTowerTiles),
-       hotelWorldwideTiles: new Set(data.hotelWorldwideTiles),
-       numPlayers: numPlayers,
-       playerFunds: playerFunds,
-       playerNames: data.players,
-       playerShares: playerShares,
-       squares: squaresCopy,
-       turn: data.turn,
-       turnPhaseBuy: data.turnPhaseBuy,
-       turnPhasePlace: data.turnPlacePhase
-     });
+    this.setState({
+      hand: new Set(data.hand),
+      hotelAmericanTiles: new Set(data.hotelAmericanTiles.map((i) => { return parseInt(i); })),
+      hotelContinentalTiles: new Set(data.hotelContinentalTiles.map((i) => { return parseInt(i); })),
+      hotelFestivalTiles: new Set(data.hotelFestivalTiles.map((i) => { return parseInt(i); })),
+      hotelImperialTiles: new Set(data.hotelImperialTiles.map((i) => { return parseInt(i); })),
+      hotelLuxorTiles: new Set(data.hotelLuxorTiles.map((i) => { return parseInt(i); })),
+      hotelTowerTiles: new Set(data.hotelTowerTiles.map((i) => { return parseInt(i); })),
+      hotelWorldwideTiles: new Set(data.hotelWorldwideTiles.map((i) => { return parseInt(i); })),
+      numHotelsLeft: data.numHotelsLeft,
+      numPlayers: numPlayers,
+      playerFunds: playerFunds,
+      playerNames: data.players,
+      playerShares: playerShares,
+      squares: squaresCopy,
+      turn: data.turn,
+      turnPhaseBuy: data.turnPhaseBuy,
+      turnPlacePhase: data.turnPlacePhase
+    });
   }
 
   componentWillMount() {
@@ -124,7 +125,7 @@ class Board extends React.Component {
   }
 
   endTurn() {
-    if (!this.state.turnPhasePlace) {
+    if (!this.state.turnPlacePhase) {
       alert('Cannot end turn without placing a tile!');
       return;
     }
@@ -242,15 +243,17 @@ class Board extends React.Component {
       success: this.getBoardState
     });
 
-    const newState = function() {
+    const newState = function(name, numHotelsLeft, newHotel) {
       let stateObject = {
         isCreatingHotel: false,
         newHotel: [],
-        numHotelsLeft: this.state.numHotelsLeft - 1
+        numHotelsLeft: numHotelsLeft - 1,
+        turnPlacePhase: true
       };
-      stateObject[`hotel${name}Tiles`] = this.state.newHotel;
+      stateObject[`${name}`] = new Set(newHotel);
+      return stateObject;
     }
-    this.setState(newState);
+    this.setState(newState(name, this.state.numHotelsLeft, this.state.newHotel));
   }
 
   handleSquareClick(i) {
@@ -301,7 +304,7 @@ class Board extends React.Component {
     squares[row][column] = this.decodeValue(i);
     this.setState({
       squares: squares,
-      turnPhasePlace: true
+      turnPlacePhase: true
     });
 
     if (doesMakeHotel) {
@@ -361,7 +364,7 @@ class Board extends React.Component {
     newHand.add(data.tile);
     this.setState({
       hand: newHand,
-      turnPhasePlace: false,
+      turnPlacePhase: false,
       turnPhaseBuy: false,
       turn: this.state.turn + 1
     });
@@ -372,9 +375,7 @@ class Board extends React.Component {
       data: {
         gameId: this.state.gameId
       },
-      success: function(data) {
-        alert('Turn ended; please wait for your turn and refresh periodically.');
-      }})
+      success: this.getBoardState })
       .fail(function() {
         alert('Could not end turn - please refresh and try again.');
       });

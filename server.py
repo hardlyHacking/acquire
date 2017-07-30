@@ -179,6 +179,7 @@ def new_hotel():
     db.games.find_one_and_update({'_id': game_id},
         {
             '$set': {
+                'turnPlacePhase': True,
                 'hand' + str(hand_num): hand,
                 hotel_name: hotel_tiles,
             },
