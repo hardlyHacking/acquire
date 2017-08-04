@@ -135,6 +135,30 @@ def place_tile():
     hand = game['hand' + str(hand_num)]
     hand.remove(tile_number)
 
+    # TODO: make sure none of the surrounding_squares belong to hotels
+    # Check if tile_number is joining an existing hotel
+    print('tile_number: ' + str(tile_number))
+    possible_squares = _get_possible_surrounding_squares(tile_number)
+    print('possible_surrounding_squares: ' + str(possible_squares))
+    surrounding_squares = [s for s in possible_squares if s in game['squares']]
+    print('surrounding_squares: ' + str(surrounding_squares))
+    hotel_dict = _create_hotel_dict(game)
+    print('hotel_dict: ' + str(hotel_dict))
+    surrounding_hotels = _get_surrounding_hotels(surrounding_squares, hotel_dict)
+    print('surrounding_hotels: ' + str(surrounding_hotels))
+
+    # There is a single hotel to which tiles are being added
+    if len(surrounding_hotels) == 1:
+        db.games.find_one_and_update({'_id': real_id},
+            {
+                '$pushAll': {
+                    surrounding_hotels[0]: surrounding_squares + [tile_number],
+                },
+            })
+    else:
+        # TODO: There are multiple hotels, so there is a merger
+        pass
+
     db.games.find_one_and_update({'_id': real_id},
         {
             '$push': {
@@ -171,7 +195,7 @@ def new_hotel():
 
     # Validate hotel is not already created
     hotel_name = data['hotelName']
-    hotel_tiles = data.getlist('hotelTiles[]')
+    hotel_tiles = [int(h) for h in data.getlist('hotelTiles[]')]
     if game['numHotelsLeft'] < 1 or \
        len(game[hotel_name]) > 0:
        return flask.jsonify({}), 400
@@ -249,6 +273,53 @@ def load_user_from_request(request):
     api_key = request.args.get('api_key')
     return User.get(api_key)
 
+
+def _get_row(index):
+    return index / 12
+
+
+def _get_column(index):
+    return index % 12
+
+
+def _get_raw_index(row, column):
+    return (row * 12) + column
+
+
+def _get_possible_surrounding_squares(index):
+    row = _get_row(index)
+    column = _get_column(index)
+    result = []
+
+    if (row > 0):
+        result.append(_get_raw_index(row - 1, column))
+
+    if (row < 8):
+        result.append(_get_raw_index(row + 1, column))
+
+    if (column > 0):
+        result.append(_get_raw_index(row, column - 1))
+
+    if (column < 11):
+        result.append(_get_raw_index(row, column + 1))
+
+    return result
+
+
+def _create_hotel_dict(game):
+    hotel_names = ['hotelLuxorTiles', 'hotelTowerTiles', 'hotelAmericanTiles',
+        'hotelFestivalTiles', 'hotelWorldwideTiles', 'hotelContinentalTiles',
+        'hotelImperialTiles']
+    return {name: set(game[name]) for name in hotel_names}
+
+
+# Returns a list of names a particular tile belongs to
+# In practice, it will be an empty list if the tile is not part of any hotel
+# And a list with a single element otherwise, as tiles only belong to 1 hotel
+def _get_surrounding_hotels(surrounding_squares, hotel_dict):
+    hotels = [[name for name in hotel_dict.keys() if tile in hotel_dict[name]]
+        for tile in surrounding_squares]
+    return [item for sublist in hotels for item in sublist]
 
 def _create_game(num_players, players=None):
     random_bag = range(12*9)

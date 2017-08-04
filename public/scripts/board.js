@@ -283,7 +283,7 @@ class Board extends React.Component {
           isMerger = surroundingHotels.size > 1;
 
     const numSafeHotels = Array.from(surroundingHotels).filter((name) => {
-      return this.state[`hotel${name}Tiles`].size > 10;
+      return this.state[`${name}`].size > 10;
     });
     // Cannot merge two or more safe hotels
     if (numSafeHotels > 1) {
@@ -327,9 +327,9 @@ class Board extends React.Component {
     if (isJoiningHotel) {
       surroundingSquares.push(i);
       const hotelName = surroundingHotels.values().next().value;
-      const newHotel = Array.from(this.state[`hotel${hotelName}Tiles`]).concat(surroundingSquares);
+      const newHotel = Array.from(this.state[`${hotelName}`]).concat(surroundingSquares);
       let newState = {};
-      newState[`hotel${hotelName}Tiles`] = new Set(newHotelArray);
+      newState[`${hotelName}`] = new Set(newHotel);
       this.setState(newState);
     }
 
