@@ -237,7 +237,7 @@ class Board extends React.Component {
     const mergingIndex = this.state.mergingIndex;
 
     const newTiles = new Set([...this.state[name], ...this.state[mergingHotels[totalMergers]]])
-    const newState = function(largerHotel, smallerHotel, mergingIndex, numHotelsLeft) {
+    const newState = function(largerHotel, smallerHotel, newTiles, mergingIndex, numHotelsLeft) {
       let stateObject = {
         mergingIndex: mergingIndex + 1,
         numHotelsLeft: numHotelsLeft + 1
