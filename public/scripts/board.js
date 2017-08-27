@@ -231,12 +231,57 @@ class Board extends React.Component {
     return surrounding;
   }
 
+  handleHotelMergeClick(name) {
+    const mergingHotels = this.state.mergingHotels;
+    const totalMergers = this.state.mergingHotels.length - 1;
+    const indexOfHotel = this.state.mergingHotels.indexOf(name);
+
+    const newTiles = new Set([...this.state[name], ...this.state[mergingHotels[totalMergers]]]);
+    const newMergingHotels = this.state.mergingHotels.filter(hotel => hotel !== name);
+
+    const newState = function(largerHotel, smallerHotel, newTiles, newMergingHotels, numHotelsLeft) {
+      let stateObject = {
+        mergingHotels: newMergingHotels,
+        numHotelsLeft: numHotelsLeft + 1
+      }
+      stateObject[`${largerHotel}`] = newTiles;
+      stateObject[`${smallerHotel}`] = new Set();
+      return stateObject;
+    }
+
+    this.setState(newState(mergingHotels[totalMergers],
+      mergingHotels[indexOfHotel], newTiles, newMergingHotels,
+      this.state.numHotelsLeft));
+
+    // If there is only one hotel left, add the merger tile and finish
+    if (newMergingHotels.length === 1) {
+      const finishMergeState = function(name, newTiles, numHotelsLeft, hand) {
+        let stateObject = {
+          isMergingHotel: false,
+          mergingHotels: [],
+          mergingIndex: 0,
+          numHotelsLeft: numHotelsLeft + 1,
+          turnPlacePhase: true
+        };
+        stateObject[`${name}`] = newTiles;
+        return stateObject;
+      };
+
+      const finalTiles = new Set(newTiles);
+      finalTiles.add(this.state.mergerTile);
+      const newHand = new Set(this.state.hand);
+      newHand.delete(this.state.mergerTile);
+      this.setState(finishMergeState(mergingHotels[totalMergers], finalTiles,
+        this.state.numHotelsLeft, newHand));
+    }
+  }
+
   handleHotelAutoMergeClick(name) {
     const mergingHotels = this.state.mergingHotels;
     const totalMergers = this.state.mergingHotels.length - 1;
     const mergingIndex = this.state.mergingIndex;
 
-    const newTiles = new Set([...this.state[name], ...this.state[mergingHotels[totalMergers]]])
+    const newTiles = new Set([...this.state[name], ...this.state[mergingHotels[totalMergers]]]);
     const newState = function(largerHotel, smallerHotel, newTiles, mergingIndex, numHotelsLeft) {
       let stateObject = {
         mergingIndex: mergingIndex + 1,
@@ -268,11 +313,11 @@ class Board extends React.Component {
           mergingHotels: [],
           mergingIndex: 0,
           numHotelsLeft: numHotelsLeft + 1,
-          turnPlacePhase: true,
-        }
+          turnPlacePhase: true
+        };
         stateObject[`${name}`] = newTiles;
         return stateObject;
-      }
+      };
       const finalTiles = new Set(newTiles);
       finalTiles.add(this.state.mergerTile);
       const newHand = new Set(this.state.hand);
