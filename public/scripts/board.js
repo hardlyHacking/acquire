@@ -347,7 +347,9 @@ class Board extends React.Component {
       return this.state[`${name}`].size > 10;
     });
     // Cannot merge two or more safe hotels
-    if (numSafeHotels > 1) {
+    if (numSafeHotels.length > 1) {
+      alert(`This would merge two or more safe hotels.\n
+             As such, this tile is illegal. Please choose another.`);
       return;
     }
 
