@@ -231,6 +231,67 @@ class Board extends React.Component {
     return surrounding;
   }
 
+  handleHotelAutoMergeClick(name) {
+    const mergingHotels = this.state.mergingHotels;
+    const totalMergers = this.state.mergingHotels.length - 1;
+    const mergingIndex = this.state.mergingIndex;
+
+    const newTiles = new Set([...this.state[name], ...this.state[mergingHotels[totalMergers]]])
+    const newState = function(largerHotel, smallerHotel, mergingIndex, numHotelsLeft) {
+      let stateObject = {
+        mergingIndex: mergingIndex + 1,
+        numHotelsLeft: numHotelsLeft + 1
+      }
+      stateObject[`${largerHotel}`] = newTiles;
+      stateObject[`${smallerHotel}`] = new Set();
+      return stateObject;
+    }
+    this.setState(newState(
+      mergingHotels[totalMergers], mergingHotels[mergingIndex], newTiles,
+      mergingIndex, this.state.numHotelsLeft));
+
+    $.post({
+      url: 'http://localhost:3000/board/merge_hotel',
+      data: {
+        gameId: this.state.gameId,
+        largerHotel: mergingHotels[totalMergers],
+        smallerHotel: mergingHotels[mergingIndex]
+      },
+      success: this.getBoardState
+    });
+
+    // If there is only one hotel left, add the merger tile and finish
+    if (mergingIndex === totalMergers - 1) {
+      const finishMergeState = function(name, newTiles, numHotelsLeft, hand) {
+        let stateObject = {
+          isMergingHotel: false,
+          mergingHotels: [],
+          mergingIndex: 0,
+          numHotelsLeft: numHotelsLeft + 1,
+          turnPlacePhase: true,
+        }
+        stateObject[`${name}`] = newTiles;
+        return stateObject;
+      }
+      const finalTiles = new Set(newTiles);
+      finalTiles.add(this.state.mergerTile);
+      const newHand = new Set(this.state.hand);
+      newHand.delete(this.state.mergerTile);
+      this.setState(finishMergeState(mergingHotels[totalMergers], finalTiles,
+        this.state.numHotelsLeft, newHand));
+
+      $.post({
+        url: 'http://localhost:3000/board/merge_finish',
+        data: {
+          gameId: this.state.gameId,
+          tile: this.state.mergerTile,
+          hotel: mergingHotels[totalMergers]
+        },
+        success: this.getBoardState
+      });
+    }
+  }
+
   handleHotelPickClick(name) {
     $.post({
       url: 'http://localhost:3000/board/new_hotel',
@@ -318,9 +379,17 @@ class Board extends React.Component {
     }
 
     if (isMerger) {
+      // Array sorted in order of smallest to largest hotel
+      const mergingHotels = Array.from(surroundingHotels).sort(function(a, b) {
+        return this.state[a].size - this.state[b].size;
+      }.bind(this));
+
       this.setState({
-        isMergingHotel: true
-      });
+        isMergingHotel: true,
+        mergerTile: i,
+        mergingHotels: mergingHotels,
+        mergingIndex: 0
+      })
       return;
     }
 
@@ -434,8 +503,40 @@ class Board extends React.Component {
 
   renderMergingHotelModal() {
     if (this.state.isMergingHotel) {
+      const index = this.state.mergingIndex;
+      const mergingHotels = this.state.mergingHotels;
 
+      let i = index + 1;
+      for ( ; i < mergingHotels.length; i++) {
+        if (this.state[mergingHotels[i]].size !== this.state[mergingHotels[index]].size) {
+          break;
+        }
+      }
+      // We can merge without user input because
+      // no hotel is the same size as the current one
+      // Logic for index === surroundingHotels.length - 1 is handled elsewhere
+      const autoMerge = i === index + 1 && i < mergingHotels.length;
+
+      let hotels;
+      if (autoMerge) {
+        const name = mergingHotels[index].split('Tiles')[0].split('hotel')[1];
+        const hotel = mergingHotels[index];
+        hotels = [<HotelPick key={hotel} name={name} onClick={() => this.handleHotelAutoMergeClick(hotel)} />];
+      } else {
+        hotels = mergingHotels.slice(index, i).map((hotel) => {
+          const name = hotel.split('Tiles')[0].split('hotel')[1];
+          return <HotelPick key={hotel} name={name} onClick={() => this.handleHotelMergeClick(hotel)} />;
+        });
+      }
+
+      return(
+        <div className="hotel-pick">
+          <h4>Choose the Hotel to be Acquired</h4>
+          {hotels}
+        </div>
+      );
     }
+
     return null;
   }
 
@@ -458,6 +559,7 @@ class Board extends React.Component {
         </div>
       );
     }
+
     return null;
   }
 
