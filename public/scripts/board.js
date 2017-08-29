@@ -27,6 +27,7 @@ class Board extends React.Component {
       indexOffset: indexOffset,
       isCreatingHotel: false,
       isMergingHotel: false,
+      isTieBreaking: false,
       hotelAmericanTiles: new Set(),
       hotelContinentalTiles: new Set(),
       hotelFestivalTiles: new Set(),
@@ -35,6 +36,8 @@ class Board extends React.Component {
       hotelTowerTiles: new Set(),
       hotelWorldwideTiles: new Set(),
       maxHotelSize: 0,
+      mergingIndex: 0,
+      mergingHotels: [],
       newHotel: new Set(),
       numHotelsLeft: 7,
       squares: squares,
@@ -76,6 +79,10 @@ class Board extends React.Component {
       hotelLuxorTiles: new Set(data.hotelLuxorTiles.map((i) => { return parseInt(i); })),
       hotelTowerTiles: new Set(data.hotelTowerTiles.map((i) => { return parseInt(i); })),
       hotelWorldwideTiles: new Set(data.hotelWorldwideTiles.map((i) => { return parseInt(i); })),
+      isMergingHotel: data.isMergingHotel,
+      isTieBreaking: data.isTieBreaking,
+      mergingIndex: data.mergingIndex,
+      mergingHotels: data.mergingHotels,
       numHotelsLeft: data.numHotelsLeft,
       numPlayers: numPlayers,
       playerFunds: playerFunds,
@@ -231,6 +238,39 @@ class Board extends React.Component {
     return surrounding;
   }
 
+  handleTieBreakClick(name) {
+    const newState = function(name, mergingHotels) {
+      const newMergingHotels = mergingHotels.filter(hotel => hotel !== name);
+      newMergingHotels.push(name);
+
+      let stateObject = {
+        isTieBreaking: false,
+        mergingHotels: newMergingHotels
+      };
+      return stateObject;
+    };
+
+    this.setState(newState(name, this.state.mergingHotels));
+
+    $.post({
+      url: 'http://localhost:3000/board/merge_tie_break',
+      data: {
+        gameId: this.state.gameId,
+        mergingHotels: this.state.mergingHotels
+      },
+      success: this.getBoardState
+    });
+
+    if (this.state.mergingHotels.length == 2) {
+      this.handleHotelMergeClick(this.state.mergingHotels[0]);
+    }
+  }
+
+  // TODO: Refactor handleHotelMergeClick and handleHotelAutoMergeClick
+  // to use the same logic of simply removing an already-merged hotel from
+  // this.state.mergingHotels instead of using the index approach
+  // This would collapse both methods into one, and avoid the need for
+  // multiple endpoints on the backend with separate logic
   handleHotelMergeClick(name) {
     const mergingHotels = this.state.mergingHotels;
     const totalMergers = this.state.mergingHotels.length - 1;
@@ -243,7 +283,7 @@ class Board extends React.Component {
       let stateObject = {
         mergingHotels: newMergingHotels,
         numHotelsLeft: numHotelsLeft + 1
-      }
+      };
       stateObject[`${largerHotel}`] = newTiles;
       stateObject[`${smallerHotel}`] = new Set();
       return stateObject;
@@ -252,6 +292,16 @@ class Board extends React.Component {
     this.setState(newState(mergingHotels[totalMergers],
       mergingHotels[indexOfHotel], newTiles, newMergingHotels,
       this.state.numHotelsLeft));
+
+    $.post({
+      url: 'http://localhost:3000/board/merge_tie_hotel',
+      data: {
+        gameId: this.state.gameId,
+        largerHotel: mergingHotels[totalMergers],
+        smallerHotel: mergingHotels[indexOfHotel]
+      },
+      success: this.getBoardState
+    });
 
     // If there is only one hotel left, add the merger tile and finish
     if (newMergingHotels.length === 1) {
@@ -273,6 +323,16 @@ class Board extends React.Component {
       newHand.delete(this.state.mergerTile);
       this.setState(finishMergeState(mergingHotels[totalMergers], finalTiles,
         this.state.numHotelsLeft, newHand));
+
+      $.post({
+        url: 'http://localhost:3000/board/merge_finish',
+        data: {
+          gameId: this.state.gameId,
+          tile: this.state.mergerTile,
+          hotel: mergingHotels[totalMergers]
+        },
+        success: this.getBoardState
+      });
     }
   }
 
@@ -431,13 +491,17 @@ class Board extends React.Component {
         return this.state[a].size - this.state[b].size;
       }.bind(this));
 
+      // If all merger hotels are the same size, we enter a special
+      // edge case where the merge-maker must choose the prevailing hotel
+      const isTieBreaking = (new Set(mergingHotels)).size === 1;
+
       this.setState({
         isMergingHotel: true,
+        isTieBreaking: isTieBreaking,
         mergerTile: i,
         mergingHotels: mergingHotels,
         mergingIndex: 0
       })
-      return;
     }
 
     if (isJoiningHotel) {
@@ -548,8 +612,28 @@ class Board extends React.Component {
     );
   }
 
+  renderMergingTieBreakingModal() {
+    if (this.state.isMergingHotel && this.state.isTieBreaking) {
+      const mergingHotels = this.state.mergingHotels;
+      const hotels = mergingHotels.map((hotel) => {
+        const name = hotel.split('Tiles')[0].split('hotel')[1];
+        return <HotelPick key={hotel} name={name} onClick={() => this.handleTieBreakClick(hotel)} />;
+      });
+
+      return(
+        <div className="hotel-pick">
+          <h4>Choose the Final Hotel</h4>
+          <h5>Because all the hotels are the same size, please choose the final hotel that will remain after all the mergers are completed.</h5>
+          {hotels}
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   renderMergingHotelModal() {
-    if (this.state.isMergingHotel) {
+    if (this.state.isMergingHotel && !this.state.isTieBreaking) {
       const index = this.state.mergingIndex;
       const mergingHotels = this.state.mergingHotels;
 
@@ -647,6 +731,7 @@ class Board extends React.Component {
     const hand = this.renderHand();
     const mergeHotelModal = this.renderMergingHotelModal();
     const newHotelModal = this.renderNewHotelModal();
+    const tieBreakingModal = this.renderMergingTieBreakingModal();
     const players = this.renderPlayers();
     return (
       <div>
@@ -655,6 +740,7 @@ class Board extends React.Component {
         {board}
         <h4>Tiles in Hand</h4>
         {hand}
+        {tieBreakingModal}
         {mergeHotelModal}
         {newHotelModal}
         <div className="status">{players}</div>

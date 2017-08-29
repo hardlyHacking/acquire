@@ -115,6 +115,45 @@ def board_state(game_id):
     return flask.jsonify(json.loads(bson.json_util.dumps(game))), 200
 
 
+@app.route('/board/merge_tie_hotel', methods=['POST'])
+def merge_tie_hotel():
+    data = flask.request.form
+    game_id = data['gameId']
+    real_id = bson.objectid.ObjectId(game_id)
+    larger_hotel, smaller_hotel = data['largerHotel'], data['smallerHotel']
+
+    # Validate this is a real game
+    game = db.games.find_one({'_id': real_id})
+    if game is None:
+        return flask.jsonify({}), 404
+
+    # Validate that both hotels exist
+    if larger_hotel not in game or smaller_hotel not in game:
+        return flask.jsonify({}), 400
+
+    # Validate that larger_hotel is larger than the smaller_hotel
+    if len(game[larger_hotel]) < len(game[smaller_hotel]):
+        return flask.jsonify({}), 400
+
+    merging_hotels = game['mergingHotels']
+    merging_hotels.remove(smaller_hotel)
+
+    db.games.find_one_and_update({'_id': real_id},
+        {
+            '$set': {
+                'isMergingHotel': True,
+                larger_hotel: game[larger_hotel] + game[smaller_hotel],
+                'mergingHotels': merging_hotels,
+                smaller_hotel: [],
+            },
+            '$inc': {
+                'numHotelsLeft': 1,
+            }
+        })
+
+    return flask.jsonify({}), 200
+
+
 @app.route('/board/merge_hotel', methods=['POST'])
 def merge_hotel():
     data = flask.request.form
@@ -157,35 +196,57 @@ def merge_finish():
     real_id = bson.objectid.ObjectId(game_id)
     hotel = data['hotel']
 
+    print('GOT ALL THE DATA')
+
     # Validate this is a real game
     game = db.games.find_one({'_id': real_id})
     if game is None:
         return flask.jsonify({}), 404
 
-    # Validate that a tile has not already been placed
-    if tile_number in game['squares']:
-        return flask.jsonify({}), 400
+    print('GAME HAS VALID ID')
+    print(hotel)
+    print(data)
+    print(game)
 
     # Validate that the hotel exists
     if len(game[hotel]) == 0:
         return flask.jsonify({}), 400
 
-    # TODO: use $pull on the mongo-db side instead of in-memory here
-    hand_num = game['turn'] % game['numPlayers']
-    hand = game['hand' + str(hand_num)]
-    hand.remove(tile_number)
+    print('HOTEL EXISTS')
 
     db.games.find_one_and_update({'_id': real_id},
         {
             '$push': {
                 hotel: tile_number,
-                'squares': tile_number,
             },
             '$set': {
-                'hand' + str(hand_num): hand,
                 'isMergingHotel': False,
                 'mergingIndex': 0,
+                'mergingHotels': [],
                 'turnPlacePhase': True,
+            }
+        })
+
+    return flask.jsonify({}), 200
+
+
+@app.route('/board/merge_tie_break', methods=['POST'])
+def merge_tie_break():
+    data = flask.request.form
+    game_id = data['gameId']
+    real_id = bson.objectid.ObjectId(game_id)
+    merging_hotels = data.getlist('mergingHotels[]')
+
+    # Validate this is a real game
+    game = db.games.find_one({'_id': real_id})
+    if game is None:
+        return flask.jsonify({}), 404
+
+    db.games.find_one_and_update({'_id': real_id},
+        {
+            '$set': {
+                'isTieBreaking': False,
+                'mergingHotels': merging_hotels,
             }
         })
 
@@ -219,6 +280,11 @@ def place_tile():
     hotel_dict = _create_hotel_dict(game)
     surrounding_hotels = _get_surrounding_hotels(surrounding_squares, hotel_dict)
 
+    # Validate that this is not an illegal tile
+    safe_hotels = [s for s in surrounding_hotels if len(game[s]) >= 10]
+    if len(safe_hotels) > 1:
+        return flask.jsonify({}), 400
+
     # There is a single hotel to which tiles are being added
     if len(surrounding_hotels) == 1:
         db.games.find_one_and_update({'_id': real_id},
@@ -240,7 +306,25 @@ def place_tile():
                 },
             })
 
-        return flask.jsonify({}), 200
+    if len(surrounding_hotels) > 1:
+        tie_breaking = len({len(game[s]) for s in surrounding_hotels}) == 1
+
+        db.games.find_one_and_update({'_id': real_id},
+        {
+            '$push': {
+                'squares': tile_number
+            },
+            '$set': {
+                'hand' + str(hand_num): hand,
+                'turnPlacePhase': True,
+                'isMergingHotel': True,
+                'isTieBreaking': tie_breaking,
+                'mergingHotels': surrounding_hotels,
+                'mergingIndex': 0,
+            },
+        })
+
+    return flask.jsonify({}), 200
 
 
 @app.route('/board/new_hotel', methods=['POST'])
@@ -416,7 +500,9 @@ def _create_game(num_players, players=None):
         'hotelImperialTiles': [],
         'hotelImperialShares': [],
         'isMergingHotel': False,
+        'isTieBreaking': False,
         'mergingIndex': 0,
+        'mergingHotels': [],
         'maxHotelSize': 0,
         'numHotelsLeft': 7,
         'numPlayers': num_players,
