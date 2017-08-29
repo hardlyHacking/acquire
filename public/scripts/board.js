@@ -262,7 +262,7 @@ class Board extends React.Component {
     });
 
     if (this.state.mergingHotels.length == 2) {
-      this.handleHotelMergeClick(this.state.mergingHotels[0]);
+      this.handleHotelAutoMergeClick(this.state.mergingHotels[0]);
     }
   }
 

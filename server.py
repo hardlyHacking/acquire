@@ -196,28 +196,23 @@ def merge_finish():
     real_id = bson.objectid.ObjectId(game_id)
     hotel = data['hotel']
 
-    print('GOT ALL THE DATA')
-
     # Validate this is a real game
     game = db.games.find_one({'_id': real_id})
     if game is None:
         return flask.jsonify({}), 404
 
-    print('GAME HAS VALID ID')
-    print(hotel)
-    print(data)
-    print(game)
-
     # Validate that the hotel exists
     if len(game[hotel]) == 0:
         return flask.jsonify({}), 400
 
-    print('HOTEL EXISTS')
+    possible_squares = _get_possible_surrounding_squares(tile_number)
+    surrounding_squares = [s for s in possible_squares if s in game['squares']]
+    unmerged_squares = [s for s in surrounding_squares if s not in game[hotel]]
 
     db.games.find_one_and_update({'_id': real_id},
         {
-            '$push': {
-                hotel: tile_number,
+            '$pushAll': {
+                hotel: unmerged_squares + [tile_number],
             },
             '$set': {
                 'isMergingHotel': False,
