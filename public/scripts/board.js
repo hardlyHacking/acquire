@@ -578,12 +578,17 @@ class Board extends React.Component {
     if (this.state.numHotelsLeft === 7) {
       return null;
     }
-    const buyableHotels = Object.keys(this.state.hotels)
-      .filter((name) => { return this.state.hotels[name].size > 0; })
-      .map((name) => {
-        return null;
-      });
-    return null;
+    const buyableHotels = this.getHotelArray().filter(name => this.state[name].size > 0);
+    const hotelShares = buyableHotels.map(name => {
+      const hotel = name.split('Tiles')[0].split('hotel')[1];
+      return <ShareBuy name={hotel} key={hotel} />;
+    });
+    return (
+      <div>
+        <h4>Buy Shares of Hotels</h4>
+        {hotelShares}
+      </div>
+    );
   }
 
   renderEndTurn() {
@@ -607,6 +612,7 @@ class Board extends React.Component {
     });
     return(
       <div className="board-row">
+        <h4>Tiles in Hand</h4>
         {hand}
       </div>
     );
@@ -710,16 +716,9 @@ class Board extends React.Component {
   }
 
   renderPlayers() {
-    if (this.state.playerNames === undefined) {
-      return null;
-    }
-    return this.state.playerNames.map((name, index) => {
-        return <Player
-          funds={this.state.playerFunds[index]}
-          key={name}
-          name={name}
-          shares={this.state.playerShares[index]} />
-    });
+    return <ScoreSheet playerNames={this.state.playerNames}
+        playerFunds={this.state.playerFunds}
+        playerShares={this.state.playerShares} />
   }
 
   render() {
@@ -732,18 +731,19 @@ class Board extends React.Component {
     const mergeHotelModal = this.renderMergingHotelModal();
     const newHotelModal = this.renderNewHotelModal();
     const tieBreakingModal = this.renderMergingTieBreakingModal();
+    const buyPhase = this.renderBuyPhase();
     const players = this.renderPlayers();
     return (
       <div>
-        <h4>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h4>
+        <h2>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h2>
         {this.renderEndTurn()}
         {board}
-        <h4>Tiles in Hand</h4>
         {hand}
         {tieBreakingModal}
         {mergeHotelModal}
         {newHotelModal}
-        <div className="status">{players}</div>
+        {buyPhase}
+        {players}
       </div>
     );
   }
