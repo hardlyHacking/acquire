@@ -711,14 +711,19 @@ class Board extends React.Component {
       onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}/>
   }
 
-  renderPlayer(player) {
-    return <Player funds={player.funds} name={player.name} shares={player.shares} />;
-  }
-
-  renderPlayers() {
+  renderScoreSheet() {
     return <ScoreSheet playerNames={this.state.playerNames}
         playerFunds={this.state.playerFunds}
         playerShares={this.state.playerShares} />
+  }
+
+  renderPriceSheet() {
+    return (
+      <div>
+        <h4>Acquire Information Card</h4>
+        <PriceSheet />
+      </div>
+    );
   }
 
   render() {
@@ -732,7 +737,8 @@ class Board extends React.Component {
     const newHotelModal = this.renderNewHotelModal();
     const tieBreakingModal = this.renderMergingTieBreakingModal();
     const buyPhase = this.renderBuyPhase();
-    const players = this.renderPlayers();
+    const scoreSheet = this.renderScoreSheet();
+    const priceSheet = this.renderPriceSheet();
     return (
       <div>
         <h2>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h2>
@@ -743,7 +749,8 @@ class Board extends React.Component {
         {mergeHotelModal}
         {newHotelModal}
         {buyPhase}
-        {players}
+        {scoreSheet}
+        {priceSheet}
       </div>
     );
   }
