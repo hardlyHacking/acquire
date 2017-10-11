@@ -66,13 +66,16 @@ def get_player(name):
         return flask.jsonify(player), 200
 
 
-@app.route('/new_player/<username>/<password>', methods=['POST'])
-def create_player(name, password):
+@app.route('/new_player/<name>', methods=['POST'])
+def create_player(name):
+    print('hey there')
     player = db.players.find_one({'name': name})
+    print(player)
     if player is None:
-        new_player = {'name': name, 'password': password}
+        new_player = {'name': name}
         pid = db.players.insert_one(new_player).inserted_id
         return flask.jsonify({'id': str(pid)}), 200
+    print('player already exists')
     return flask.jsonify({}), 404
 
 
@@ -502,6 +505,8 @@ def _create_game(num_players, players=None):
         'numHotelsLeft': 7,
         'numPlayers': num_players,
         'players': [] if players is None else players,
+        'playerFunds': [6000] * num_players,
+        'playerShares': [0] * num_players * 7,
         'squares': starting_board,
         'turn': turn_num,
         'turnBuyPhase': False,

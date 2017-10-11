@@ -60,8 +60,12 @@ class Board extends React.Component {
 
   processBoardState(data) {
     const numPlayers = parseInt(data.numPlayers);
-    const playerFunds = Array(numPlayers).fill(6000);
     const playerShares = Array(numPlayers).fill(Array(7).fill(0));
+    for (let i = 0; i < numPlayers; i++) {
+      for (let j = 0; j < 7; j++) {
+        playerShares[i][j] = data.playerShares[i * numPlayers + j];
+      }
+    }
     let squaresCopy = this.state.squares.map((row) => { return row.slice(); });
     data.squares.map((encodedSquare) => {
       const tileNumber = parseInt(encodedSquare);
@@ -85,7 +89,7 @@ class Board extends React.Component {
       mergingHotels: data.mergingHotels,
       numHotelsLeft: data.numHotelsLeft,
       numPlayers: numPlayers,
-      playerFunds: playerFunds,
+      playerFunds: data.playerFunds,
       playerNames: data.players,
       playerShares: playerShares,
       squares: squaresCopy,

@@ -82,6 +82,64 @@ class NewGame extends React.Component {
   }
 }
 
+class CreatePlayer extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { name : 'sample_name' }
+
+    this.handleChange = this.handleChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  handleChange(event) {
+    this.setState({ name: event.target.value });
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+    $.post({
+      url: 'http://localhost:3000/new_player/' + this.state.name,
+      success: function(data, textStatus, jqXHR) {
+        alert('Success! Password is: ' + data.id);
+      }
+    })
+    .fail(function() {
+      alert('This username is already taken');
+    });
+  }
+
+  render() {
+    return(
+      <form>
+        <h2>Create Account</h2>
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                <label htmlFor="playerName">Display name</label>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input name="playerName"
+                       type="text"
+                       value={this.state.name}
+                       onChange={this.handleChange} />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <button type="button" onClick={this.handleSubmit}>Create player</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </form>
+    )
+  }
+}
+
 class JoinGame extends React.Component {
   constructor(props) {
     super(props);
@@ -140,8 +198,15 @@ class Landing extends React.Component {
             <td>
               <JoinGame />
             </td>
+          </tr>
+          <tr>
             <td>
               <NewGame minPlayers="3" maxPlayers="6"/>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <CreatePlayer />
             </td>
           </tr>
         </tbody>
