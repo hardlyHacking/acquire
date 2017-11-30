@@ -4,6 +4,9 @@ class ShareBuy extends React.Component {
   }
 
   getDefaultColor() {
+    if (this.props.disabled) {
+      return '#BFBDBC';
+    }
     switch (this.props.name.toLowerCase()) {
       case 'american':
         return '#4169E1';
@@ -25,11 +28,18 @@ class ShareBuy extends React.Component {
   }
 
   render() {
-    const buttonStyle = { backgroundColor: this.getDefaultColor() };
+    const buttonStyle = {
+      width: '90px',
+      backgroundColor: this.getDefaultColor()
+    };
     return (
       <div style={buttonStyle}>
         <h5>{this.props.name}</h5>
-        <input type="number" min="1" max="3" name={this.props.name} />
+        <input type="number"
+               min="1"
+               max="3"
+               name={this.props.name}
+               disabled={this.props.disabled} />
       </div>
     );
   }

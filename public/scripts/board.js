@@ -77,12 +77,19 @@ class Board extends React.Component {
     this.setState({
       hand: new Set(data.hand),
       hotelAmericanTiles: new Set(data.hotelAmericanTiles.map((i) => { return parseInt(i); })),
+      hotelAmericanShares: parseInt(data.hotelAmericanShares),
       hotelContinentalTiles: new Set(data.hotelContinentalTiles.map((i) => { return parseInt(i); })),
+      hotelContinentalShares: parseInt(data.hotelContinentalShares),
       hotelFestivalTiles: new Set(data.hotelFestivalTiles.map((i) => { return parseInt(i); })),
+      hotelFestivalShares: parseInt(data.hotelFestivalShares),
       hotelImperialTiles: new Set(data.hotelImperialTiles.map((i) => { return parseInt(i); })),
+      hotelImperialShares: parseInt(data.hotelImperialShares),
       hotelLuxorTiles: new Set(data.hotelLuxorTiles.map((i) => { return parseInt(i); })),
+      hotelLuxorShares: parseInt(data.hotelLuxorShares),
       hotelTowerTiles: new Set(data.hotelTowerTiles.map((i) => { return parseInt(i); })),
+      hotelTowerShares: parseInt(data.hotelTowerShares),
       hotelWorldwideTiles: new Set(data.hotelWorldwideTiles.map((i) => { return parseInt(i); })),
+      hotelWorldwideShares: parseInt(data.hotelWorldwideShares),
       isMergingHotel: data.isMergingHotel,
       isTieBreaking: data.isTieBreaking,
       mergingIndex: data.mergingIndex,
@@ -179,7 +186,9 @@ class Board extends React.Component {
    * Returns the set of hotels in the game.
    */
   getHotelArray() {
-    return Object.keys(this.state).filter((key) => { return key.startsWith('hotel'); });
+    return Object.keys(this.state).filter((key) => {
+      return key.startsWith('hotel') && key.endsWith('Tiles');
+    });
   }
 
   /*
@@ -566,33 +575,29 @@ class Board extends React.Component {
   }
 
   renderBoard() {
-    return this.state.squares.map((row, rowNum) => {
+    const columns = this.state.squares.map((row, rowNum) => {
       let column = row.map((cell, columnNum) => {
         return this.renderSquare(rowNum * this.state.indexOffset + columnNum);
       });
       return (
-        <div key={rowNum} className="board-row">
+        <tr key={rowNum} className="board-row">
           {column}
-        </div>
+        </tr>
       );
     });
+
+    return(
+      <table>
+        <tbody>
+          {columns}
+        </tbody>
+      </table>
+    );
   }
 
   renderBuyPhase() {
-    if (this.state.numHotelsLeft === 7) {
-      return null;
-    }
     const buyableHotels = this.getHotelArray().filter(name => this.state[name].size > 0);
-    const hotelShares = buyableHotels.map(name => {
-      const hotel = name.split('Tiles')[0].split('hotel')[1];
-      return <ShareBuy name={hotel} key={hotel} />;
-    });
-    return (
-      <div>
-        <h4>Buy Shares of Hotels</h4>
-        {hotelShares}
-      </div>
-    );
+    return <ShareBuyTable totalHotels={this.getHotelArray()} buyableHotels={buyableHotels} />
   }
 
   renderEndTurn() {
@@ -600,8 +605,7 @@ class Board extends React.Component {
       return null;
     }
     return (
-      <button onClick={() => this.endTurn()}
-      >End Turn</button>
+      <button onClick={() => this.endTurn()}>End Turn</button>
     );
   }
 
@@ -622,97 +626,37 @@ class Board extends React.Component {
     );
   }
 
-  renderMergingTieBreakingModal() {
-    if (this.state.isMergingHotel && this.state.isTieBreaking) {
-      const mergingHotels = this.state.mergingHotels;
-      const hotels = mergingHotels.map((hotel) => {
-        const name = hotel.split('Tiles')[0].split('hotel')[1];
-        return <HotelPick key={hotel} name={name} onClick={() => this.handleTieBreakClick(hotel)} />;
-      });
-
-      return(
-        <div className="hotel-pick">
-          <h4>Choose the Final Hotel</h4>
-          <h5>Because all the hotels are the same size, please choose the final hotel that will remain after all the mergers are completed.</h5>
-          {hotels}
-        </div>
-      );
-    }
-
-    return null;
-  }
-
-  renderMergingHotelModal() {
-    if (this.state.isMergingHotel && !this.state.isTieBreaking) {
-      const index = this.state.mergingIndex;
-      const mergingHotels = this.state.mergingHotels;
-
-      let i = index + 1;
-      for ( ; i < mergingHotels.length; i++) {
-        if (this.state[mergingHotels[i]].size !== this.state[mergingHotels[index]].size) {
-          break;
-        }
-      }
-      // We can merge without user input because
-      // no hotel is the same size as the current one
-      // Logic for index === surroundingHotels.length - 1 is handled elsewhere
-      const autoMerge = i === index + 1 && i < mergingHotels.length;
-
-      let hotels;
-      if (autoMerge) {
-        const name = mergingHotels[index].split('Tiles')[0].split('hotel')[1];
-        const hotel = mergingHotels[index];
-        hotels = [<HotelPick key={hotel} name={name} onClick={() => this.handleHotelAutoMergeClick(hotel)} />];
-      } else {
-        hotels = mergingHotels.slice(index, i).map((hotel) => {
-          const name = hotel.split('Tiles')[0].split('hotel')[1];
-          return <HotelPick key={hotel} name={name} onClick={() => this.handleHotelMergeClick(hotel)} />;
-        });
-      }
-
-      return(
-        <div className="hotel-pick">
-          <h4>Choose the Hotel to be Acquired</h4>
-          {hotels}
-        </div>
-      );
-    }
-
-    return null;
-  }
-
-  renderNewHotelModal() {
-    if (this.state.isCreatingHotel) {
-      const newHotels = this.getHotelArray().filter((name) => {
-        return this.state[name].size === 0;
-      });
-      if (this.state.numHotelsLeft !== newHotels.length) {
-        throw '(numHotelsLeft, newHotels): ' + this.state.numHotelsLeft + ',' + newHotels.length;
-      }
-      const hotels = newHotels.map((hotel) => {
-        const name = hotel.split('Tiles')[0].split('hotel')[1];
-        return <HotelPick key={hotel} name={name} onClick={() => this.handleHotelPickClick(hotel)} />;
-      });
-      return (
-        <div className="hotel-pick">
-          <h4>Choose a Hotel</h4>
-          {hotels}
-        </div>
-      );
-    }
-
-    return null;
+  renderHotelActionModal() {
+    const hotels = this.getHotelArray().map(item => { return this.state[item] });
+    return (
+      <HotelActionModal allHotelArray={this.getHotelArray()}
+                        handleHotelAutoMergeClick={this.handleHotelAutoMergeClick}
+                        handleHotelMergeClick={this.handleHotelMergeClick}
+                        handleHotelPickClick={this.handleHotelPickClick}
+                        handleTieBreakClick={this.handleTieBreakClick}
+                        hotels={hotels}
+                        isCreatingHotel={this.state.isCreatingHotel}
+                        isMergingHotel={this.state.isMergingHotel}
+                        isTieBreaking={this.state.isTieBreaking}
+                        mergingHotels={this.state.mergingHotels}
+                        mergingIndex={this.state.mergingIndex} />
+    );
   }
 
   renderSquare(i) {
     const row = this.decodeRow(i),
           column = this.decodeColumn(i),
           value = this.state.squares[row][column],
-          hotel = this.getHotelArray().filter((name) => {
-            return this.state[name].has(i); });
+          hotel = this.getHotelArray().filter(name => { return this.state[name].has(i); });
     const hotelName = hotel.length === 1 ? hotel[0].split('Tiles')[0].split('hotel')[1] : null;
-    return <Square key={i} hotel={hotelName} value={value}
-      onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}/>
+    return (
+      <td>
+        <Square key={i}
+                hotel={hotelName}
+                onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}
+                value={value} />
+      </td>
+    );
   }
 
   renderScoreSheet() {
@@ -735,14 +679,12 @@ class Board extends React.Component {
       return null;
     }
 
-    const board = this.renderBoard();
-    const hand = this.renderHand();
-    const mergeHotelModal = this.renderMergingHotelModal();
-    const newHotelModal = this.renderNewHotelModal();
-    const tieBreakingModal = this.renderMergingTieBreakingModal();
-    const buyPhase = this.renderBuyPhase();
-    const scoreSheet = this.renderScoreSheet();
-    const priceSheet = this.renderPriceSheet();
+    const board = this.renderBoard(),
+          buyPhase = this.renderBuyPhase(),
+          hand = this.renderHand(),
+          hotelModal = this.renderHotelActionModal(),
+          priceSheet = this.renderPriceSheet(),
+          scoreSheet = this.renderScoreSheet();
 
     const paddingLeft = {
       paddingLeft: '20px'
@@ -764,12 +706,12 @@ class Board extends React.Component {
               <td> {hand} </td>
               <td style={paddingLeft}> {scoreSheet} </td>
             </tr>
+            <tr>
+              <td> {hotelModal} </td>
+              <td style={paddingLeft}> {buyPhase} </td>
+            </tr>
           </tbody>
         </table>
-        {tieBreakingModal}
-        {mergeHotelModal}
-        {newHotelModal}
-        {buyPhase}
       </div>
     );
   }

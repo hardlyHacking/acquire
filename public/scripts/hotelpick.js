@@ -4,9 +4,31 @@ class HotelPick extends React.Component {
     this.state = {
       hovered: false,
     };
+
+    this.onMouseEnter = this.onMouseEnter.bind(this);
+    this.onMouseLeave = this.onMouseLeave.bind(this);
+  }
+
+  onMouseEnter() {
+    if (!this.props.disabled) {
+      this.setState({
+        hovered: true
+      });
+    }
+  }
+
+  onMouseLeave() {
+    if (!this.props.disabled) {
+      this.setState({
+        hovered: false
+      });
+    }
   }
 
   getDefaultColor() {
+    if (this.props.disabled) {
+      return '#BFBDBC';
+    }
     switch (this.props.name.toLowerCase()) {
       case 'american':
         return '#4169E1';
@@ -33,9 +55,10 @@ class HotelPick extends React.Component {
     return (
       <button
         className="hotel-pick-choice"
+        disabled={this.props.disabled}
         onClick={() => this.props.onClick()}
-        onMouseEnter={() => this.setState({ hovered: true })}
-        onMouseLeave={() => this.setState({ hovered: false })}
+        onMouseEnter={() => this.onMouseEnter()}
+        onMouseLeave={() => this.onMouseLeave()}
         type="submit"
         style={buttonStyle}
       > {this.props.name} </button>
