@@ -352,6 +352,9 @@ def new_hotel():
        len(game[hotel_name]) > 0:
        return flask.jsonify({}), 400
 
+    playerShares = games['playerShares']
+    playerShares[hand_num] += 1
+
     db.games.find_one_and_update({'_id': game_id},
         {
             '$set': {
@@ -399,6 +402,11 @@ def new_tile():
         })
 
     return flask.jsonify({'tile': tile}), 200
+
+
+@app.route('/board/buy_shares', methods=['POST'])
+def buy_shares():
+    pass
 
 
 @app.route('/board/end_turn', methods=['POST'])
@@ -473,6 +481,7 @@ def _get_surrounding_hotels(surrounding_squares, hotel_dict):
         for tile in surrounding_squares]
     return list(set([item for sublist in hotels for item in sublist]))
 
+
 def _create_game(num_players, players=None):
     random_bag = range(12*9)
     starting_board = list(random.sample(random_bag, num_players))
@@ -540,4 +549,4 @@ class User(flask.ext.login.UserMixin):
 
 
 if __name__ == '__main__':
-    app.run(port=int(os.environ.get("PORT", 3000)), debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 3000)))

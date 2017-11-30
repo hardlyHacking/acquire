@@ -9,7 +9,7 @@ class PriceSheet extends React.Component {
             <td colSpan="2">Majority holder bonus</td>
           </tr>
           <tr>
-            <td>Tower<br />Luxor</td>
+            <td>Luxor<br />Tower</td>
             <td>American<br />Festival<br />Worldwide</td>
             <td>Continental<br />Imperial</td>
             <td>Stock Price per Block<br />Buying / Selling</td>

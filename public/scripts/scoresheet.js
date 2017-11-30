@@ -8,19 +8,19 @@ class ScoreSheet extends React.Component {
       case 1:
         return { backgroundColor: '#9ACD32' };
       case 2:
-        return { backgroundColor: '#4169E1' };
-      case 3:
-        return { backgroundColor: '#48D1CC' };
-      case 4:
-        return { backgroundColor: '#6B8E23' };
-      case 5:
-        return { backgroundColor: '#DA70D6' };
-      case 6:
         return { backgroundColor: '#FF6347' };
-      case 7:
+      case 3:
         return { backgroundColor: '#FFD700' };
-      case 8:
+      case 4:
+        return { backgroundColor: '#4169E1' };
+      case 5:
+        return { backgroundColor: '#6B8E23' };
+      case 6:
         return { backgroundColor: '#D2691E' };
+      case 7:
+        return { backgroundColor: '#48D1CC' };
+      case 8:
+        return { backgroundColor: '#DA70D6' };
       default:
         return { backgroundColor: '#FFFFFF' };
     }
@@ -53,13 +53,13 @@ class ScoreSheet extends React.Component {
             <tr>
               <th>Player</th>
               <th>Cash</th>
-              <th>American</th>
-              <th>Continental</th>
-              <th>Festival</th>
-              <th>Imperial</th>
               <th>Luxor</th>
               <th>Tower</th>
+              <th>American</th>
+              <th>Festival</th>
               <th>Worldwide</th>
+              <th>Continental</th>
+              <th>Imperial</th>
             </tr>
           </thead>
           <tbody>

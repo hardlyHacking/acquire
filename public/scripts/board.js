@@ -743,18 +743,33 @@ class Board extends React.Component {
     const buyPhase = this.renderBuyPhase();
     const scoreSheet = this.renderScoreSheet();
     const priceSheet = this.renderPriceSheet();
+
+    const paddingLeft = {
+      paddingLeft: '20px'
+    };
+
     return (
       <div>
-        <h2>{this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act</h2>
         {this.renderEndTurn()}
-        {board}
-        {hand}
+        <table>
+          <tbody>
+            <tr><td><h2>
+              {this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act
+            </h2></td></tr>
+            <tr>
+              <td> {board} </td>
+              <td style={paddingLeft}> {priceSheet} </td>
+            </tr>
+            <tr>
+              <td> {hand} </td>
+              <td style={paddingLeft}> {scoreSheet} </td>
+            </tr>
+          </tbody>
+        </table>
         {tieBreakingModal}
         {mergeHotelModal}
         {newHotelModal}
         {buyPhase}
-        {scoreSheet}
-        {priceSheet}
       </div>
     );
   }
