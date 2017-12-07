@@ -208,11 +208,13 @@ def merge_finish():
     possible_squares = _get_possible_surrounding_squares(tile_number)
     surrounding_squares = [s1 for s1 in possible_squares if s1 in game['squares']]
     unmerged_squares = [s2 for s2 in surrounding_squares if s2 not in game[hotel]]
+    final_list = [item for item in
+        game[hotel] + [tile_number] + [unmerged_squares] if item != []]
 
     db.games.find_one_and_update({'_id': real_id},
         {
             '$set': {
-                hotel: game[hotel] + [tile_number] + [unmerged_squares],
+                hotel: final_list,
                 'isMergingHotel': False,
                 'mergingIndex': 0,
                 'mergingHotels': [],
