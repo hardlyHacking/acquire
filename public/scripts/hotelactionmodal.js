@@ -105,7 +105,7 @@ class TieBreakHotelModal extends React.Component {
       return <HotelPick disabled={!isTied}
                         key={name}
                         name={hotelName}
-                        onClick={() => this.onClick(name)} />;
+                        onClick={() => this.props.onClick(name)} />;
     });
 
     return(

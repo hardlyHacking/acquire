@@ -206,15 +206,13 @@ def merge_finish():
         return flask.jsonify({}), 400
 
     possible_squares = _get_possible_surrounding_squares(tile_number)
-    surrounding_squares = [s for s in possible_squares if s in game['squares']]
-    unmerged_squares = [s for s in surrounding_squares if s not in game[hotel]]
+    surrounding_squares = [s1 for s1 in possible_squares if s1 in game['squares']]
+    unmerged_squares = [s2 for s2 in surrounding_squares if s2 not in game[hotel]]
 
     db.games.find_one_and_update({'_id': real_id},
         {
-            '$pushAll': {
-                hotel: unmerged_squares + [tile_number],
-            },
             '$set': {
+                hotel: game[hotel] + [tile_number] + [unmerged_squares],
                 'isMergingHotel': False,
                 'mergingIndex': 0,
                 'mergingHotels': [],
