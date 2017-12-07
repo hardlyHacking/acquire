@@ -13,6 +13,7 @@ class BaseHotelModal extends React.Component {
     );
   }
 }
+
 class DisabledHotelModal extends React.Component {
   constructor(props) {
     super(props);
@@ -37,13 +38,13 @@ class CreateHotelModal extends React.Component {
   }
 
   render() {
-    const hotels = this.props.allHotelArray.map((name, index) => {
+    const hotels = this.props.allHotelArray.map((fullName, index) => {
       const canFound = this.props.hotels[index].size === 0,
-            hotelName = name.split('Tiles')[0].split('hotel')[1];
+            hotelName = fullName.split('Tiles')[0].split('hotel')[1];
       return <HotelPick disabled={!canFound}
-                        key={name}
+                        key={fullName}
                         name={hotelName}
-                        onClick={() => this.props.handleClick(name)} />;
+                        onClick={() => this.props.handleClick(fullName)} />;
     });
 
     return (
@@ -125,16 +126,16 @@ class HotelActionModal extends React.Component {
     if (this.props.isTieBreaking) {
       modal = <TieBreakHotelModal allHotelArray={this.props.allHotelArray}
                                   tiedHotels={this.props.mergingHotels}
-                                  onClick={this.props.handleTieBreakClick} />
+                                  onClick={(name) => this.props.handleTieBreakClick(name)} />
     } else if (this.props.isMergingHotel) {
       modal = <MergeHotelModal allHotelArray={this.props.allHotelArray}
                                autoMerge={this.props.handleHotelAutoMergeClick}
-                               handleMerge={this.props.handleHotelMergeClick}
+                               handleMerge={(name) => this.props.handleHotelMergeClick(name)}
                                mergingHotels={this.props.mergingHotels}
                                mergingIndex={this.props.mergingIndex} />
     } else if (this.props.isCreatingHotel) {
       modal = <CreateHotelModal allHotelArray={this.props.allHotelArray}
-                                handleClick={this.props.handleHotelPickClick}
+                                handleClick={(name) => this.props.handleHotelPickClick(name)}
                                 hotels={this.props.hotels} />
     } else {
       modal = <DisabledHotelModal allHotelArray={this.props.allHotelArray} />

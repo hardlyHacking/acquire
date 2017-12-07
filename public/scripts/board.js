@@ -616,7 +616,9 @@ class Board extends React.Component {
   renderHand() {
     let hand = Array.from(this.state.hand).map((tile) => {
       const value = this.decodeValue(tile);
-      return <Square key={tile} value={value} />
+      return <Square key={tile}
+                     onClick={() => this.handleSquareClick(tile)}
+                     value={value} />
     });
     return(
       <div className="board-row">
@@ -630,10 +632,10 @@ class Board extends React.Component {
     const hotels = this.getHotelArray().map(item => { return this.state[item] });
     return (
       <HotelActionModal allHotelArray={this.getHotelArray()}
-                        handleHotelAutoMergeClick={this.handleHotelAutoMergeClick}
-                        handleHotelMergeClick={this.handleHotelMergeClick}
-                        handleHotelPickClick={this.handleHotelPickClick}
-                        handleTieBreakClick={this.handleTieBreakClick}
+                        handleHotelAutoMergeClick={(name) => this.handleHotelAutoMergeClick(name)}
+                        handleHotelMergeClick={(name) => this.handleHotelMergeClick(name)}
+                        handleHotelPickClick={(name) => this.handleHotelPickClick(name)}
+                        handleTieBreakClick={(name) => this.handleTieBreakClick(name)}
                         hotels={hotels}
                         isCreatingHotel={this.state.isCreatingHotel}
                         isMergingHotel={this.state.isMergingHotel}
@@ -653,7 +655,8 @@ class Board extends React.Component {
       <td>
         <Square key={i}
                 hotel={hotelName}
-                onClick={() => this.handleSquareClick(i)} inHand={this.state.hand.has(i)}
+                inHand={this.state.hand.has(i)}
+                onClick={() => this.handleSquareClick(i)}
                 value={value} />
       </td>
     );

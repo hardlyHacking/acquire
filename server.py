@@ -68,14 +68,11 @@ def get_player(name):
 
 @app.route('/new_player/<name>', methods=['POST'])
 def create_player(name):
-    print('hey there')
     player = db.players.find_one({'name': name})
-    print(player)
     if player is None:
         new_player = {'name': name}
         pid = db.players.insert_one(new_player).inserted_id
         return flask.jsonify({'id': str(pid)}), 200
-    print('player already exists')
     return flask.jsonify({}), 404
 
 
@@ -352,7 +349,7 @@ def new_hotel():
        len(game[hotel_name]) > 0:
        return flask.jsonify({}), 400
 
-    playerShares = games['playerShares']
+    playerShares = game['playerShares']
     playerShares[hand_num] += 1
 
     db.games.find_one_and_update({'_id': game_id},
