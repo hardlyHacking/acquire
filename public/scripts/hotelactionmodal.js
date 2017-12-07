@@ -101,11 +101,11 @@ class TieBreakHotelModal extends React.Component {
     const tiedSet = new Set(this.props.tiedHotels);
     const hotels = this.props.allHotelArray.map(name => {
       const isTied = tiedSet.has(name);
-      const hotelName = hotel.split('Tiles')[0].split('hotel')[1];
+      const hotelName = name.split('Tiles')[0].split('hotel')[1];
       return <HotelPick disabled={!isTied}
                         key={name}
                         name={hotelName}
-                        onClick={() => this.onClick(hotel)} />;
+                        onClick={() => this.onClick(name)} />;
     });
 
     return(
@@ -125,7 +125,7 @@ class HotelActionModal extends React.Component {
     let modal;
     if (this.props.isTieBreaking) {
       modal = <TieBreakHotelModal allHotelArray={this.props.allHotelArray}
-                                  tiedHotels={this.props.mergingHotels}
+                                  tiedHotels={this.props.mergingHotelNames}
                                   onClick={(name) => this.props.handleTieBreakClick(name)} />
     } else if (this.props.isMergingHotel) {
       modal = <MergeHotelModal allHotelArray={this.props.allHotelArray}
