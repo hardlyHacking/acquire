@@ -1,0 +1,12 @@
+List of bugs introduced after the refactor
+
+1) Mergers of two hotels of size 3 don't get detected as a tiebreak merger
+   even though mergers of two size 2 hotels do
+
+2) handleHotelAutoMergeClick assumes the hotel at the end will always be the
+   last one standing. In the case of two hotels that are tied or if the
+   state.mergingHotels aren't sorted by size, this results in incorrect results
+
+3) If the starting 6 tiles have two adjacent tiles, then creating a hotel does
+   not produce correct results. E.G. if D10 and D11 are part of the initial 6,
+   placing D9 only creates a hotel containing D9 and D10, and not D11.
