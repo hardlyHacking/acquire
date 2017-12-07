@@ -630,6 +630,8 @@ class Board extends React.Component {
 
   renderHotelActionModal() {
     const hotels = this.getHotelArray().map(item => { return this.state[item] });
+    const mergingHotels = this.state.mergingHotels.map(name => { return this.state[name] });
+
     return (
       <HotelActionModal allHotelArray={this.getHotelArray()}
                         handleHotelAutoMergeClick={(name) => this.handleHotelAutoMergeClick(name)}
@@ -640,7 +642,8 @@ class Board extends React.Component {
                         isCreatingHotel={this.state.isCreatingHotel}
                         isMergingHotel={this.state.isMergingHotel}
                         isTieBreaking={this.state.isTieBreaking}
-                        mergingHotels={this.state.mergingHotels}
+                        mergingHotelNames={this.state.mergingHotels}
+                        mergingHotels={mergingHotels}
                         mergingIndex={this.state.mergingIndex} />
     );
   }

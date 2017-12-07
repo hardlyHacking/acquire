@@ -64,7 +64,7 @@ class MergeHotelModal extends React.Component {
 
     let i = index + 1;
     for ( ; i < mergingHotels.length; i++) {
-      if (this.props[mergingHotels[i]].size !== this.props[mergingHotels[index]].size) {
+      if (mergingHotels[i].size !== mergingHotels[index].size) {
         break;
       }
     }
@@ -76,12 +76,12 @@ class MergeHotelModal extends React.Component {
 
     let hotels;
     if (autoMerge) {
-      const name = mergingHotels[index].split('Tiles')[0].split('hotel')[1];
-      const hotel = mergingHotels[index];
-      hotels = [<HotelPick key={hotel} name={name} onClick={() => this.props.autoMerge(hotel)} />];
+      const fullName = this.props.mergingHotelNames[index];
+      const name = fullName.split('Tiles')[0].split('hotel')[1];
+      hotels = [<HotelPick key={name} name={name} onClick={() => this.props.autoMerge(fullName)} />];
     } else {
-      hotels = mergingHotels.slice(index, i).map((hotel) => {
-        const name = hotel.split('Tiles')[0].split('hotel')[1];
+      hotels = mergingHotels.slice(index, i).map((hotel, j) => {
+        const name = this.props.mergingHotelNames[index + j].split('Tiles')[0].split('hotel')[1];
         return <HotelPick key={hotel} name={name} onClick={() => this.props.handleMerge(hotel)} />;
       });
     }
@@ -129,8 +129,9 @@ class HotelActionModal extends React.Component {
                                   onClick={(name) => this.props.handleTieBreakClick(name)} />
     } else if (this.props.isMergingHotel) {
       modal = <MergeHotelModal allHotelArray={this.props.allHotelArray}
-                               autoMerge={this.props.handleHotelAutoMergeClick}
+                               autoMerge={(name) => this.props.handleHotelAutoMergeClick(name)}
                                handleMerge={(name) => this.props.handleHotelMergeClick(name)}
+                               mergingHotelNames={this.props.mergingHotelNames}
                                mergingHotels={this.props.mergingHotels}
                                mergingIndex={this.props.mergingIndex} />
     } else if (this.props.isCreatingHotel) {
