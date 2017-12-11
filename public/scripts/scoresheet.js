@@ -36,7 +36,7 @@ class ScoreSheet extends React.Component {
           funds={this.props.playerFunds[index]}
           key={name}
           name={name}
-          shares={this.props.playerShares[index]} /> });
+          shares={this.props.playerShares.slice(index * 7, index * 7 + 7)} /> });
 
     const columnStyles = [...Array(9).keys()].map((blah, i) => {
       return <col key={i} style={this.getBackgroundStyle(i)} />

@@ -44,7 +44,7 @@ class CreateHotelModal extends React.Component {
       return <HotelPick disabled={!canFound}
                         key={fullName}
                         name={hotelName}
-                        onClick={() => this.props.handleClick(fullName)} />;
+                        onClick={() => this.props.onClick(fullName)} />;
     });
 
     return (
@@ -59,32 +59,13 @@ class MergeHotelModal extends React.Component {
   }
 
   render() {
-    const index = this.props.mergingIndex;
-    const mergingHotels = this.props.mergingHotels;
-
-    let i = index + 1;
-    for ( ; i < mergingHotels.length; i++) {
-      if (mergingHotels[i].size !== mergingHotels[index].size) {
-        break;
-      }
-    }
-
-    // We can merge without user input because
-    // no hotel is the same size as the current one
-    // Logic for index === surroundingHotels.length - 1 is handled elsewhere
-    const autoMerge = i === index + 1 && i < mergingHotels.length;
-
-    let hotels;
-    if (autoMerge) {
-      const fullName = this.props.mergingHotelNames[index];
-      const name = fullName.split('Tiles')[0].split('hotel')[1];
-      hotels = [<HotelPick key={name} name={name} onClick={() => this.props.autoMerge(fullName)} />];
-    } else {
-      hotels = mergingHotels.slice(index, i).map((hotel, j) => {
-        const name = this.props.mergingHotelNames[index + j].split('Tiles')[0].split('hotel')[1];
-        return <HotelPick key={hotel} name={name} onClick={() => this.props.handleMerge(hotel)} />;
+      const minimumSize = this.props.mergingHotels[0].length
+      const hotels = this.props.allHotelArray.map((name, index) => {
+        const realName = name.split('Tiles')[0].split('hotel')[1];
+        return <HotelPick disabled={this.props.hotels[index].length === minimumSize}
+                          key={name}
+                          name={realName} onClick={() => this.props.onClick(name)} />;
       });
-    }
 
     return(
       <BaseHotelModal hotels={hotels} text={`Choose The Hotel To Be Acquired`} />
@@ -98,11 +79,10 @@ class TieBreakHotelModal extends React.Component {
   }
 
   render() {
-    const tiedSet = new Set(this.props.tiedHotels);
+    const mergingHotels = new Set(this.props.mergingHotelNames)
     const hotels = this.props.allHotelArray.map(name => {
-      const isTied = tiedSet.has(name);
       const hotelName = name.split('Tiles')[0].split('hotel')[1];
-      return <HotelPick disabled={!isTied}
+      return <HotelPick disabled={!mergingHotels.has(name)}
                         key={name}
                         name={hotelName}
                         onClick={() => this.props.onClick(name)} />;
@@ -110,7 +90,7 @@ class TieBreakHotelModal extends React.Component {
 
     return(
       <BaseHotelModal hotels={hotels}
-                      secondaryText={`Becasue hotels are the same size, please choose the hotel that will remain after all mergers are complete.`}
+                      secondaryText={`Hotels are all the same size. Choose the hotel that will remain after all mergers.`}
                       text={`Choose The Final Hotel`} />
     );
   }
@@ -123,21 +103,20 @@ class HotelActionModal extends React.Component {
 
   render() {
     let modal;
-    if (this.props.isTieBreaking) {
+    if (this.props.isPickingFinalMergeWinner) {
       modal = <TieBreakHotelModal allHotelArray={this.props.allHotelArray}
-                                  tiedHotels={this.props.mergingHotelNames}
-                                  onClick={(name) => this.props.handleTieBreakClick(name)} />
-    } else if (this.props.isMergingHotel) {
+                                  mergingHotelNames={this.props.mergingHotelNames}
+                                  onClick={(name) => this.props.onClick(name)} />
+    } else if (this.props.isMergingHotel || this.props.isTieBreaking) {
       modal = <MergeHotelModal allHotelArray={this.props.allHotelArray}
-                               autoMerge={(name) => this.props.handleHotelAutoMergeClick(name)}
-                               handleMerge={(name) => this.props.handleHotelMergeClick(name)}
-                               mergingHotelNames={this.props.mergingHotelNames}
+                               hotels={this.props.hotels}
                                mergingHotels={this.props.mergingHotels}
-                               mergingIndex={this.props.mergingIndex} />
+                               mergingHotelNames={this.props.mergingHotelNames}
+                               onClick={(name) => this.props.onClick(name)} />
     } else if (this.props.isCreatingHotel) {
       modal = <CreateHotelModal allHotelArray={this.props.allHotelArray}
-                                handleClick={(name) => this.props.handleHotelPickClick(name)}
-                                hotels={this.props.hotels} />
+                                hotels={this.props.hotels}
+                                onClick={(name) => this.props.onClick(name)} />
     } else {
       modal = <DisabledHotelModal allHotelArray={this.props.allHotelArray} />
     }
