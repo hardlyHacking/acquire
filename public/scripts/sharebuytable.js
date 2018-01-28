@@ -3,33 +3,57 @@ class ShareBuyTable extends React.Component {
     super(props);
 
     this.state = {
-      totalHotels: this.props.totalHotels,
-      buyableHotels: new Set(this.props.buyableHotels)
+      buyableHotels: new Set(this.props.buyableHotels),
+      enableBuyButton: this.props.enableBuyButton,
+      hotelShares: this.props.totalHotels.map(hotel => {
+        const isBuyable = this.state.buyableHotels.has(hotel)
+        const name = hotel.split('Tiles')[0].split('hotel')[1];
+        return <ShareBuy name={name} key={hotel} disabled={!isBuyable} />;
+      }),
+      totalHotels: this.props.totalHotels
     };
   }
 
-  render() {
-    const hotelShares = this.state.totalHotels.map(hotel => {
-      const isBuyable = this.state.buyableHotels.has(hotel)
-      const name = hotel.split('Tiles')[0].split('hotel')[1];
-      return <ShareBuy name={name} key={hotel} disabled={!isBuyable} />;
-    });
+  componentWillReceiveProps(nextProps) {
+    if (this.props != nextProps) {
+      this.setState({
+        buyableHotels: new Set(nextProps.buyableHotels),
+        enableBuyButton: nextProps.enableBuyButton,
+        hotelShares: nextProps.totalHotels.map(hotel => {
+          const isBuyable = this.state.buyableHotels.has(hotel)
+          const name = hotel.split('Tiles')[0].split('hotel')[1];
+          return <ShareBuy disabled={!isBuyable}
+                           key={hotel}
+                           name={name} />;
+        }),
+        totalHotels: nextProps.totalHotels
+      });
+    }
+  }
 
+  render() {
     return (
       <div>
         <h4>Buy Shares of Hotels</h4>
         <table>
           <tbody>
             <tr>
-              <td> {hotelShares[0]} </td>
-              <td> {hotelShares[1]} </td>
-              <td> {hotelShares[2]} </td>
+              <td>
+                <button disabled={this.state.enableBuyButton}
+                        onClick={() => this.buyShares()}
+                >Buy Shares</button>
+              </td>
             </tr>
             <tr>
-              <td> {hotelShares[3]} </td>
-              <td> {hotelShares[4]} </td>
-              <td> {hotelShares[5]} </td>
-              <td> {hotelShares[6]} </td>
+              <td> {this.state.hotelShares[0]} </td>
+              <td> {this.state.hotelShares[1]} </td>
+              <td> {this.state.hotelShares[2]} </td>
+            </tr>
+            <tr>
+              <td> {this.state.hotelShares[3]} </td>
+              <td> {this.state.hotelShares[4]} </td>
+              <td> {this.state.hotelShares[5]} </td>
+              <td> {this.state.hotelShares[6]} </td>
             </tr>
           </tbody>
         </table>

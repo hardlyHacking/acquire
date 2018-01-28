@@ -1,3 +1,5 @@
+const NUM_HOTELS = 7;
+
 class Board extends React.Component {
   constructor(props) {
     super(props);
@@ -6,6 +8,7 @@ class Board extends React.Component {
     const squares = Array(props.numRows).fill(Array(props.numColumns).fill(null));
 
     this.state = {
+      buyShares: {},
       gameId: location.search.split('game_id=')[1],
       gameOver: false,
       hand: new Set(),
@@ -25,16 +28,20 @@ class Board extends React.Component {
       mergingIndex: 0,
       mergingHotels: [],
       newHotel: new Set(),
-      numHotelsLeft: 7,
+      numHotelsLeft: NUM_HOTELS,
       squares: squares,
       turn: 0,
       turnBuyPhase: false,
       turnPlacePhase: false,
     };
 
+    this.buyShares = this.buyShares.bind(this);
     this.getBoardState = this.getBoardState.bind(this);
     this.processBoardState = this.processBoardState.bind(this);
     this.processNewTile = this.processNewTile.bind(this);
+  }
+
+  buyShares() {
   }
 
   getBoardState() {
@@ -146,7 +153,7 @@ class Board extends React.Component {
     });
     const maxHotel = Math.max(...hotelSizes);
     const safeChains = hotelSizes.filter((size) => { return size >= 11; });
-    const gameOver = maxHotel >= 41 || safeChains.length === 7;
+    const gameOver = maxHotel >= 41 || safeChains.length === NUM_HOTELS;
     this.setState({
       gameOver: gameOver,
     });
@@ -171,7 +178,6 @@ class Board extends React.Component {
     return this.state.squares[row][column];
   }
 
-
   handleHotelPickClick(name) {
     $.post({
       url: 'http://localhost:3000/board/pick_hotel',
@@ -181,6 +187,10 @@ class Board extends React.Component {
       },
       success: this.getBoardState
     });
+  }
+
+  handleShareBuyChange(name, value) {
+      this.state.buyShares
   }
 
   handleSquareClick(i) {
@@ -251,6 +261,22 @@ class Board extends React.Component {
       });
   }
 
+  renderActionButtons() {
+    if (this.state.gameOver) {
+      return null;
+    }
+    return (
+      <div>
+        <button disabled={!this.state.turnPlacePhase}
+                onClick={() => this.endTurn()}
+        >End Turn</button>
+        <button disabled={true}
+                onClick={() => this.gameOver()}
+        >Game Over</button>
+      </div>
+    );
+  }
+
   renderBoard() {
     const columns = this.state.squares.map((row, rowNum) => {
       let column = row.map((cell, columnNum) => {
@@ -273,17 +299,19 @@ class Board extends React.Component {
   }
 
   renderBuyPhase() {
-    const buyableHotels = this.getHotelArray().filter(name => this.state[name].size > 0);
-    return <ShareBuyTable totalHotels={this.getHotelArray()} buyableHotels={buyableHotels} />
-  }
-
-  renderEndTurn() {
-    if (this.state.gameOver) {
-      return null;
-    }
-    return (
-      <button onClick={() => this.endTurn()}>End Turn</button>
-    );
+    // All hotels of length > 0 that have outstanding shares
+    const buyableHotels = this.getHotelArray()
+      .filter((name) => {
+        const prefix = name.split('Tiles')[0];
+        const sharesName = prefix + 'Shares';
+        return this.state[name].size > 0 && this.state[sharesName] > 0;
+      });
+    const enableBuyButton = buyableHotels.length === 0 ||
+      !(this.state.turnPlacePhase && !this.state.turnBuyPhase);
+    return <ShareBuyTable
+        buyableHotels={buyableHotels}
+        enableBuyButton={enableBuyButton}
+        totalHotels={this.getHotelArray()} />
   }
 
   renderGameOver() {
@@ -372,7 +400,7 @@ class Board extends React.Component {
 
     return (
       <div>
-        {this.renderEndTurn()}
+        {this.renderActionButtons()}
         <table>
           <tbody>
             <tr><td><h2>
