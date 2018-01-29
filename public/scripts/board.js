@@ -29,19 +29,16 @@ class Board extends React.Component {
       mergingHotels: [],
       newHotel: new Set(),
       numHotelsLeft: NUM_HOTELS,
+      sharesToBuy: {},
       squares: squares,
       turn: 0,
       turnBuyPhase: false,
       turnPlacePhase: false,
     };
 
-    this.buyShares = this.buyShares.bind(this);
     this.getBoardState = this.getBoardState.bind(this);
     this.processBoardState = this.processBoardState.bind(this);
     this.processNewTile = this.processNewTile.bind(this);
-  }
-
-  buyShares() {
   }
 
   getBoardState() {
@@ -190,7 +187,16 @@ class Board extends React.Component {
   }
 
   handleShareBuyChange(name, value) {
-      this.state.buyShares
+    this.setState({
+      sharesToBuy: {
+        ...this.state.sharesToBuy,
+        [name]: value
+      }
+    });
+  }
+
+  handleShareBuyClick() {
+    console.log('execute buying');
   }
 
   handleSquareClick(i) {
@@ -310,7 +316,9 @@ class Board extends React.Component {
       !(this.state.turnPlacePhase && !this.state.turnBuyPhase);
     return <ShareBuyTable
         buyableHotels={buyableHotels}
+        buyShares={() => this.handleShareBuyClick()}
         enableBuyButton={enableBuyButton}
+        handleChange={(name, value) => this.handleShareBuyChange(name, value)}
         totalHotels={this.getHotelArray()} />
   }
 

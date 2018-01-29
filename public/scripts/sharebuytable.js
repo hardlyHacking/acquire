@@ -1,28 +1,33 @@
 class ShareBuyTable extends React.Component {
   constructor(props) {
     super(props);
-
+    const buyableHotelsSet = new Set(this.props.buyableHotels);
     this.state = {
-      buyableHotels: new Set(this.props.buyableHotels),
-      enableBuyButton: this.props.enableBuyButton,
-      hotelShares: this.props.totalHotels.map(hotel => {
-        const isBuyable = this.state.buyableHotels.has(hotel)
+      buyableHotels: buyableHotelsSet,
+      enableBuyButton: props.enableBuyButton,
+      hotelShares: props.totalHotels.map(hotel => {
+        const isBuyable = buyableHotelsSet.has(hotel)
         const name = hotel.split('Tiles')[0].split('hotel')[1];
-        return <ShareBuy name={name} key={hotel} disabled={!isBuyable} />;
+        return <ShareBuy disabled={!isBuyable}
+                         handleChange={(name, value) => this.props.handleChange(name, value)}
+                         key={hotel}
+                         name={name} />;
       }),
-      totalHotels: this.props.totalHotels
+      totalHotels: this.props.totalHotels,
     };
   }
 
   componentWillReceiveProps(nextProps) {
     if (this.props != nextProps) {
+      const newBuyableHotelSet = new Set(nextProps.buyableHotels);
       this.setState({
-        buyableHotels: new Set(nextProps.buyableHotels),
+        buyableHotels: newBuyableHotelSet,
         enableBuyButton: nextProps.enableBuyButton,
         hotelShares: nextProps.totalHotels.map(hotel => {
-          const isBuyable = this.state.buyableHotels.has(hotel)
+          const isBuyable = newBuyableHotelSet.has(hotel)
           const name = hotel.split('Tiles')[0].split('hotel')[1];
           return <ShareBuy disabled={!isBuyable}
+                           handleChange={(name, value) => this.props.handleChange(name, value)}
                            key={hotel}
                            name={name} />;
         }),
@@ -39,8 +44,8 @@ class ShareBuyTable extends React.Component {
           <tbody>
             <tr>
               <td>
-                <button disabled={this.state.enableBuyButton}
-                        onClick={() => this.buyShares()}
+                <button disabled={this.state.enableBuyButton && this.state.validShareNum}
+                        onClick={() => this.props.buyShares()}
                 >Buy Shares</button>
               </td>
             </tr>

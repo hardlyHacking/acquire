@@ -1,6 +1,7 @@
 class ShareBuy extends React.Component {
   constructor(props) {
     super(props);
+    this.onChange = this.onChange.bind(this);
   }
 
   getDefaultColor() {
@@ -27,6 +28,10 @@ class ShareBuy extends React.Component {
     }
   }
 
+  onChange(event) {
+    this.props.handleChange(this.props.name, parseInt(event.target.value) || 0);
+  }
+
   render() {
     const buttonStyle = {
       width: '90px',
@@ -36,9 +41,10 @@ class ShareBuy extends React.Component {
       <div style={buttonStyle}>
         <h5>{this.props.name}</h5>
         <input type="number"
+               onChange={(event) => this.onChange(event)}
+               name={this.props.name}
                min="1"
                max="3"
-               name={this.props.name}
                disabled={this.props.disabled} />
       </div>
     );
