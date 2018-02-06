@@ -60,19 +60,19 @@ class Board extends React.Component {
     this.setState({
       hand: new Set(data.hand),
       hotelAmericanTiles: new Set(data.hotelAmericanTiles.map((i) => { return parseInt(i); })),
-      hotelAmericanShares: parseInt(data.hotelAmericanShares),
+      hotelAmericanShares: parseInt(data.hotelShares[2]),
       hotelContinentalTiles: new Set(data.hotelContinentalTiles.map((i) => { return parseInt(i); })),
-      hotelContinentalShares: parseInt(data.hotelContinentalShares),
+      hotelContinentalShares: parseInt(data.hotelShares[5]),
       hotelFestivalTiles: new Set(data.hotelFestivalTiles.map((i) => { return parseInt(i); })),
-      hotelFestivalShares: parseInt(data.hotelFestivalShares),
+      hotelFestivalShares: parseInt(data.hotelShares[3]),
       hotelImperialTiles: new Set(data.hotelImperialTiles.map((i) => { return parseInt(i); })),
-      hotelImperialShares: parseInt(data.hotelImperialShares),
+      hotelImperialShares: parseInt(data.hotelShares[6]),
       hotelLuxorTiles: new Set(data.hotelLuxorTiles.map((i) => { return parseInt(i); })),
-      hotelLuxorShares: parseInt(data.hotelLuxorShares),
+      hotelLuxorShares: parseInt(data.hotelShares[0]),
       hotelTowerTiles: new Set(data.hotelTowerTiles.map((i) => { return parseInt(i); })),
-      hotelTowerShares: parseInt(data.hotelTowerShares),
+      hotelTowerShares: parseInt(data.hotelShares[1]),
       hotelWorldwideTiles: new Set(data.hotelWorldwideTiles.map((i) => { return parseInt(i); })),
-      hotelWorldwideShares: parseInt(data.hotelWorldwideShares),
+      hotelWorldwideShares: parseInt(data.hotelShares[4]),
       isCreatingHotel: data.isCreatingHotel,
       isMergingHotel: data.isMergingHotel,
       isPickingFinalMergeWinner: data.isPickingFinalMergeWinner,
@@ -198,11 +198,13 @@ class Board extends React.Component {
 
   handleShareBuyClick() {
     $.post({
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
       url: 'http://localhost:3000/board/buy_shares',
-      data: {
+      data: JSON.stringify({
         gameId: this.state.gameId,
         shares: this.state.sharesToBuy,
-      },
+      }),
       success: this.getBoardState
     });
   }

@@ -248,16 +248,72 @@ def new_tile():
 
 @app.route('/board/buy_shares', methods=['POST'])
 def buy_shares():
-    pass
+    data = flask.request.get_json()
+    game_id = bson.objectid.ObjectId(data['gameId'])
+    shares = data['shares']
+    game = db.games.find_one({'_id': game_id})
+
+    # Validate the game exists
+    if game is None:
+        return flask.jsonify({}), 404
+
+    # Validate a tile has been placed
+    if not game['turnPlacePhase']:
+        return flask.jsonify({}), 400
+
+    # Validate a maximum of three shares being selected
+    if sum(shares.values()) > 3:
+        return flask.jsonify({}), 400
+
+    # Validate there are still enough shares to be bought
+    hotelShares = game['hotelShares']
+    for s in shares:
+        if hotelShares[_get_hotel_index(s)] < shares[s]:
+            return flask.jsonify({}), 400
+
+    # Determine the price of the shares and the user has enough cash
+    hand_num = game['turn'] % game['numPlayers']
+    money = game['playerFunds'][hand_num]
+    money_needed = _calculate_needed_funds(shares, game)
+    if money_needed > money:
+        return flask.jsonify({}), 400
+
+    hotelShares = game['hotelShares']
+    playerShares = game['playerShares']
+    for s in shares:
+        index = _get_hotel_index(s)
+        hotelShares[index] -= shares[s]
+        playerShares[7 * hand_num + index] += shares[s]
+
+    playerFunds = game['playerFunds']
+    playerFunds[hand_num] -= money_needed
+
+    db.games.find_one_and_update({'_id': game_id},
+        {
+            '$set': {
+                'hotelShares': hotelShares,
+                'playerFunds': playerFunds,
+                'playerShares': playerShares,
+            },
+        })
+
+    return flask.jsonify({}), 200
 
 
 @app.route('/board/end_turn', methods=['POST'])
 def end_turn():
     data = flask.request.form
     game_id = bson.objectid.ObjectId(data['gameId'])
+    game = db.games.find_one({'_id': game_id})
 
-    # TODO: validate that a tile has been placed
-    # TODO: validate that all players have 6 tiles in their hands
+
+    # Validate this is a real game
+    if game is None:
+        return flask.jsonify({}), 404
+
+    # Validate that a tile has been placed
+    if not game['turnPlacePhase']:
+        return flask.jsonify({}), 400
 
     db.games.find_one_and_update({'_id': game_id},
         {
@@ -284,7 +340,12 @@ def _create_hotel(game_id, hotel_name):
     partialName = hotel_name.split('hotel')[1].split('Tiles')[0]
     playerShares = game['playerShares']
     hand_num = game['turn'] % game['numPlayers']
-    playerShares[7 * hand_num + _get_hotel_index(partialName)] += 1
+
+    hotel_partial_index = _get_hotel_index(partialName)
+    hotelShares = game['hotelShares']
+    if hotelShares[_get_hotel_index(partialName)] > 0:
+        playerShares[7 * hand_num + hotel_partial_index] += 1
+        hotelShares[hotel_partial_index] -= 1
 
     db.games.find_one_and_update({'_id': game_id},
         {
@@ -293,10 +354,10 @@ def _create_hotel(game_id, hotel_name):
                 'isCreatingHotel': False,
                 'newHotel': [],
                 'playerShares': playerShares,
+                'hotelShares': hotelShares,
             },
             '$inc': {
                 'numHotelsLeft': -1,
-                'hotel' + partialName + 'Shares': -1,
             },
         })
 
@@ -489,6 +550,44 @@ def _get_surrounding_hotels(surrounding_squares, hotel_dict):
     return list(set([item for sublist in hotels for item in sublist]))
 
 
+def _get_hotel_cost_per_share(hotel, size):
+    base_cost = 0
+    if size == 2:
+        base_cost = 200
+    elif size == 3:
+        base_cost = 300
+    elif size == 4:
+        base_cost = 400
+    elif size == 5:
+        base_cost = 500
+    elif size > 5 and size < 11:
+        base_cost = 600
+    elif size > 10 and size < 21:
+        base_cost = 700
+    elif size > 20 and size < 31:
+        base_cost = 800
+    elif size > 30 and size < 41:
+        base_cost = 900
+    else:
+        base_cost = 1000
+
+    if hotel == 'Luxor' or hotel == 'Tower':
+        return base_cost
+    elif hotel == 'American' or hotel == 'Festival' or hotel == 'Worldwide':
+        return base_cost + 100
+    else:
+        return base_cost + 200
+
+def _calculate_needed_funds(shares, game):
+    total = 0
+    for s in shares:
+        size = len(set(game['hotel{0}Tiles'.format(s)]))
+        cost = _get_hotel_cost_per_share(s, size)
+        total += shares[s] * cost
+
+    return total
+
+
 def _create_game(num_players, players=None):
     random_bag = range(12 * 9)
     starting_board = list(random.sample(random_bag, num_players))
@@ -500,19 +599,13 @@ def _create_game(num_players, players=None):
         'bag': bag,
         'gameOver': False,
         'hotelLuxorTiles': [],
-        'hotelLuxorShares': 25,
         'hotelTowerTiles': [],
-        'hotelTowerShares': 25,
         'hotelAmericanTiles': [],
-        'hotelAmericanShares': 25,
         'hotelFestivalTiles': [],
-        'hotelFestivalShares': 25,
         'hotelWorldwideTiles': [],
-        'hotelWorldwideShares': 25,
         'hotelContinentalTiles': [],
-        'hotelContinentalShares': 25,
         'hotelImperialTiles': [],
-        'hotelImperialShares': 25,
+        'hotelShares': [25] * 7,
         'isCreatingHotel': False,
         'isMergingHotel': False,
         'isPickingFinalMergeWinner': False,
