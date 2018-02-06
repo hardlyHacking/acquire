@@ -85,6 +85,7 @@ class Board extends React.Component {
       playerFunds: data.playerFunds,
       playerNames: data.players,
       playerShares: data.playerShares.map((i) => { return parseInt(i); }),
+      sharesToBuy: {},
       squares: squaresCopy,
       turn: data.turn,
       turnBuyPhase: data.turnBuyPhase,
@@ -196,7 +197,14 @@ class Board extends React.Component {
   }
 
   handleShareBuyClick() {
-    console.log('execute buying');
+    $.post({
+      url: 'http://localhost:3000/board/buy_shares',
+      data: {
+        gameId: this.state.gameId,
+        shares: this.state.sharesToBuy,
+      },
+      success: this.getBoardState
+    });
   }
 
   handleSquareClick(i) {
