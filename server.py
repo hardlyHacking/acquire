@@ -7,6 +7,9 @@ import pymongo
 import random
 
 
+COOKIE_NAME = 'acquire'
+
+
 app = flask.Flask(__name__, static_url_path='', static_folder='public')
 client = pymongo.MongoClient()
 db = client.test_database
@@ -14,7 +17,52 @@ db = client.test_database
 
 @app.route('/')
 def home_page():
-    return flask.send_from_directory('public', 'index.html')
+    resp = flask.send_from_directory('public', 'index.html')
+    resp.set_cookie(COOKIE_NAME, expires=0)
+    return resp
+
+
+@app.route('/player_home/<name>')
+def player_home(name):
+    if COOKIE_NAME in flask.request.cookies:
+        cookie = flask.request.cookies.get(COOKIE_NAME)
+        player = db.players.find_one({'name': name})
+        if player['password'] != cookie:
+            return flask.jsonify({}), 401
+
+        games = list(db.games.find({'players': name}))
+        return flask.jsonify({'games': games}), 200
+
+    return flask.jsonify({}), 401
+
+
+@app.route('/dashboard')
+def dashboard():
+    name = flask.request.args.get('name')
+    if name is None:
+        return flask.jsonify({}), 400
+
+    if COOKIE_NAME in flask.request.cookies:
+        cookie = flask.request.cookies.get(COOKIE_NAME)
+        player = db.players.find_one({'name': name})
+        if player['password'] != cookie:
+            return flask.jsonify({}), 401
+        return flask.send_from_directory('public', 'dashboard.html')
+
+    return flask.jsonify({}), 401
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = flask.request.get_json()
+    name, password = data['name'], data['password']
+    player = db.players.find_one({'name': name, 'password': password})
+    if player is None:
+        return flask.jsonify({}), 401
+
+    resp = flask.jsonify({'name': name})
+    resp.set_cookie(COOKIE_NAME, password)
+    return resp
 
 
 @app.route('/game')
@@ -31,20 +79,26 @@ def get_player(name):
         return flask.jsonify(player), 200
 
 
-@app.route('/new_player/<name>', methods=['POST'])
-def create_player(name):
+@app.route('/new_player', methods=['POST'])
+def create_player():
+    data = flask.request.get_json()
+    name, password = data['name'], data['password']
     player = db.players.find_one({'name': name})
     if player is None:
-        new_player = {'name': name}
+        new_player = {'name': name, 'password': password}
         pid = db.players.insert_one(new_player).inserted_id
         return flask.jsonify({'id': str(pid)}), 200
-    return flask.jsonify({}), 404
+    return flask.jsonify({}), 400
 
 
 @app.route('/new_game', methods=['POST'])
 def new_game():
-    data = flask.request.form
-    num_players, players = int(data['numPlayers']), data.getlist('playerNames[]')
+    data = flask.request.get_json()
+    num_players, players = int(data['numPlayers']), data['playerNames']
+    for p in players:
+        player = db.players.find_one({'name': p})
+        if player is None:
+            return flask.jsonify({}), 400
     game = _create_game(num_players, players)
     game_id = db.games.insert_one(game).inserted_id
     return flask.jsonify({'id': str(game_id)}), 200
