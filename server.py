@@ -24,6 +24,21 @@ def home_page():
 
 @app.route('/player_home/<name>')
 def player_home(name):
+    def _prep_game(name, game):
+        new_game = {'_id': str(game['_id'])}
+        new_game['players'] = game['players']
+        new_game['turn'] = game['turn']
+        new_game['gameOver'] = game['gameOver']
+        new_game['hotelLuxorTiles'] = game['hotelLuxorTiles']
+        new_game['hotelTowerTiles'] = game['hotelTowerTiles']
+        new_game['hotelAmericanTiles'] = game['hotelAmericanTiles']
+        new_game['hotelFestivalTiles'] = game['hotelFestivalTiles']
+        new_game['hotelWorldwideTiles'] = game['hotelWorldwideTiles']
+        new_game['hotelContinentalTiles'] = game['hotelContinentalTiles']
+        new_game['hotelImperialTiles'] = game['hotelImperialTiles']
+        new_game['squares'] = game['squares']
+        return new_game
+
     if COOKIE_NAME in flask.request.cookies:
         cookie = flask.request.cookies.get(COOKIE_NAME)
         player = db.players.find_one({'name': name})
@@ -31,6 +46,7 @@ def player_home(name):
             return flask.jsonify({}), 401
 
         games = list(db.games.find({'players': name}))
+        games = [_prep_game(name, g) for g in games]
         return flask.jsonify({'games': games}), 200
 
     return flask.jsonify({}), 401

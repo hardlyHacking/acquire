@@ -39,7 +39,7 @@ class Dashboard extends React.Component {
         {this.state.games.length === 0 ? (
           <p>Womp womp. No games yet.</p>
         ) : (
-          <p>All the games here dawg.</p>
+          <GameList games={this.state.games} />
         )}
       </div>
     )
