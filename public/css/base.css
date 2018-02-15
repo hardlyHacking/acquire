@@ -31,6 +31,14 @@ ol, ul {
   margin-bottom: 10px;
 }
 
+.mini-square {
+  background: #fff;
+  border: 1px solid #999;
+  padding: 0;
+  width: 5px;
+  height: 5px;
+}
+
 .square {
   background: #fff;
   border: 1px solid #999;

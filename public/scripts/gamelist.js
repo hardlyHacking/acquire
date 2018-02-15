@@ -1,11 +1,73 @@
 class MiniBoard extends React.Component {
   constructor(props) {
     super(props);
+
+    const board = [[], [], [], [], [], [], [], [], []];
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 12; j++) {
+        board[i].push(i * 12 + j);
+      }
+    }
+
+    this.state = {
+      american: new Set(this.props.game.hotelAmericanTiles),
+      board: board,
+      continental: new Set(this.props.game.hotelContinentalTiles),
+      festival: new Set(this.props.game.hotelFestivalTiles),
+      imperial: new Set(this.props.game.hotelImperialTiles),
+      luxor: new Set(this.props.game.hotelLuxorTiles),
+      tower: new Set(this.props.game.hotelTowerTiles),
+      worldwide: new Set(this.props.game.hotelWorldwideTiles),
+      squares: new Set(this.props.game.squares)
+    }
+  }
+
+  renderMiniSquare(i) {
+    let hotel = 'Empty';
+    if (this.state.squares.has(i)) {
+      hotel = 'NonHotel';
+      if (this.state.american.has(i)) {
+        hotel = 'American';
+      } else if (this.state.continental.has(i)) {
+        hotel = 'Continental';
+      } else if (this.state.festival.has(i)) {
+        hotel = 'Festival';
+      } else if (this.state.imperial.has(i)) {
+        hotel = 'Imperial';
+      } else if (this.state.luxor.has(i)) {
+        hotel = 'Luxor';
+      } else if (this.state.tower.has(i)) {
+        hotel = 'Tower';
+      } else if (this.state.worldwide.has(i)) {
+        hotel = 'Worldwide';
+      }
+    }
+
+    return (
+      <td key={i}>
+        <MiniSquare hotel={hotel} />
+      </td>
+    );
   }
 
   render() {
+    const columns = this.state.board.map((row, rowNum) => {
+      let column = row.map(column => {
+        return this.renderMiniSquare(column);
+      });
+      return (
+        <tr key={rowNum}>
+          {column}
+        </tr>
+      );
+    })
+
     return(
-      <p>I swear there is a board here.</p>
+      <table>
+        <tbody>
+          {columns}
+        </tbody>
+      </table>
     );
   }
 }
