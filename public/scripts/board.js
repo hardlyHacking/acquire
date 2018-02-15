@@ -375,9 +375,8 @@ class Board extends React.Component {
           hotel = this.getHotelArray().filter(name => { return this.state[name].has(i); });
     const hotelName = hotel.length === 1 ? hotel[0].split('Tiles')[0].split('hotel')[1] : null;
     return (
-      <td>
-        <Square key={i}
-                hotel={hotelName}
+      <td key={i}>
+        <Square hotel={hotelName}
                 inHand={this.state.hand.has(i)}
                 onClick={() => this.handleSquareClick(i)}
                 value={value} />
