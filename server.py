@@ -450,31 +450,45 @@ def _merge_hotels(game_id, surrounding_hotels, name=None):
     while len(hotels) > 1:
         # Auto merge possible
         if len(game[hotels[0]]) < len(game[hotels[1]]):
+            # Calculate primary and secondary bonuses
+            hotel_name = hotels[0].split('hotel')[1].split('Tiles')[0]
+            funds = _calculate_primary_secondary(hotel_name, game)
+
             db.games.find_one_and_update({'_id': game_id},
             {
                 '$set': {
                     hotels[0]: [],
                     hotels[-1]: game[hotels[0]] + game[hotels[-1]],
                     'mergingHotels': hotels[1:],
+                    'playerFunds': funds,
                 },
                 '$inc': { 'numHotelsLeft': 1, },
             })
             hotels = hotels[1:]
         # This is the result of a special isPickingFinalMergeWinner
         elif len(hotels) == 2 and 'finalMergerWinner' in game:
+            # Calculate primary and secondary bonuses
+            hotel_name = hotels[0].split('hotel')[1].split('Tiles')[0]
+            funds = _calculate_primary_secondary(hotel_name, game)
+
             db.games.find_one_and_update({'_id': game_id},
             {
                 '$set': {
                     hotels[0]: [],
                     hotels[-1]: game[hotels[0]] + game[hotels[-1]],
                     'mergingHotels': hotels[1:],
+                    'playerFunds': funds,
                 },
                 '$inc': { 'numHotelsLeft': 1, },
             })
             hotels = hotels[1:]
         # User input has already been selected
         elif len(game[hotels[0]]) == len(game[hotels[1]]) and name is not None:
+            # Calculate primary and secondary bonuses
+            hotel_name = hotels[0].split('hotel')[1].split('Tiles')[0]
+            funds = _calculate_primary_secondary(hotel_name, game)
             hotels.remove(name)
+
             db.games.find_one_and_update({'_id': game_id},
             {
                 '$set': {
@@ -482,6 +496,7 @@ def _merge_hotels(game_id, surrounding_hotels, name=None):
                     hotels[-1]: game[name] + game[hotels[-1]],
                     'isMergingHotel': len(hotels) == 2,
                     'mergingHotels': hotels,
+                    'playerFunds': funds,
                 },
                 '$inc': { 'numHotelsLeft': 1, },
             })
@@ -648,6 +663,7 @@ def _get_hotel_cost_per_share(hotel, size):
     else:
         return base_cost + 200
 
+
 def _calculate_needed_funds(shares, game):
     total = 0
     for s in shares:
@@ -656,6 +672,41 @@ def _calculate_needed_funds(shares, game):
         total += shares[s] * cost
 
     return total
+
+
+def _calculate_primary_secondary(hotel, game):
+    index = _get_hotel_index(hotel)
+    hotel_shares = game['playerShares'][index::7]
+
+    primary = max(hotel_shares)
+    primary_count = hotel_shares.count(primary)
+    secondary = sorted(hotel_shares)[-2]
+    secondary_count = hotel_shares.count(secondary)
+    primary_indices = [i for i, elem in enumerate(hotel_shares) if elem == primary]
+    secondary_indices = [i for i, elem in enumerate(hotel_shares) if elem == secondary]
+
+    # Assign net gain for each based on the count + value of hotel bonus
+    cost = _get_hotel_cost_per_share(hotel, len(game['hotel{0}Tiles'.format(hotel)]))
+    funds = []
+    for i in range(game['numPlayers']):
+        funds.append(game['playerFunds'][i])
+    # Primary and secondary bonus go to the same person
+    if primary_count == 1 and secondary_count == 0:
+        funds[primary_indices[0]] += cost * 10          # Primary bonus
+        funds[primary_indices[0]] += (cost * 10) / 2    # Secondary bonus
+    # No secondary bonus given - only shared primary
+    elif primary_count > 1:
+        bonus = cost * 10 / len(primary_indices)
+        for index in primary_indices:
+            funds[index] += bonus
+    # Usual case - a single primary bonus with one or more secondary bonuses
+    elif primary_count == 1 and secondary_count > 0:
+        secondary_bonus = ((cost * 10) / 2) / len(secondary_indices)
+        funds[primary_indices[0]] += cost * 10
+        for index in secondary_indices:
+            funds[index] += secondary_bonus
+
+    return funds
 
 
 def _create_game(num_players, players=None):
