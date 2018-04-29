@@ -43,7 +43,7 @@ class ShareBuy extends React.Component {
         <input type="number"
                onChange={(event) => this.onChange(event)}
                name={this.props.name}
-               min="1"
+               min="0"
                max="3"
                disabled={this.props.disabled} />
       </div>
