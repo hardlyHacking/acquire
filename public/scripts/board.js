@@ -31,6 +31,7 @@ class Board extends React.Component {
       numHotelsLeft: NUM_HOTELS,
       sharesToBuy: {},
       squares: squares,
+      totalScore: [],
       turn: 0,
       turnBuyPhase: false,
       turnPlacePhase: false,
@@ -58,6 +59,7 @@ class Board extends React.Component {
     });
 
     this.setState({
+      gameOver: data.gameOver,
       hand: new Set(data.hand),
       hotelAmericanTiles: new Set(data.hotelAmericanTiles.map((i) => { return parseInt(i); })),
       hotelAmericanShares: parseInt(data.hotelShares[2]),
@@ -87,6 +89,7 @@ class Board extends React.Component {
       playerShares: data.playerShares.map((i) => { return parseInt(i); }),
       sharesToBuy: {},
       squares: squaresCopy,
+      totalScore: data.totalScore,
       turn: data.turn,
       turnBuyPhase: data.turnBuyPhase,
       turnPlacePhase: data.turnPlacePhase
@@ -314,6 +317,9 @@ class Board extends React.Component {
   }
 
   renderBuyPhase() {
+    if (this.state.gameOver) {
+      return null;
+    }
     // All hotels of length > 0 that have outstanding shares
     const buyableHotels = this.getHotelArray()
       .filter((name) => {
@@ -332,7 +338,19 @@ class Board extends React.Component {
   }
 
   renderGameOver() {
-    return null;
+    if (!this.state.gameOver) {
+      return null;
+    }
+    const winner = this.state.totalScore.indexOf(Math.max(...this.state.totalScore));
+    return (
+      <tr>
+        <td>
+          <h2>
+            {this.state.playerNames[winner]} Wins the Game!
+          </h2>
+        </td>
+      </tr>
+    );
   }
 
   renderHand() {
@@ -351,6 +369,9 @@ class Board extends React.Component {
   }
 
   renderHotelActionModal() {
+    if (this.state.gameOver) {
+      return null;
+    }
     const hotels = this.getHotelArray().map(item => { return this.state[item] });
     const mergingHotels = this.state.mergingHotels.map(name => { return this.state[name] });
 
@@ -398,6 +419,21 @@ class Board extends React.Component {
     );
   }
 
+  renderTurn() {
+    if (this.state.gameOver) {
+      return null;
+    }
+    return (
+      <tr>
+        <td>
+          <h2>
+            {this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act
+          </h2>
+        </td>
+      </tr>
+    );
+  }
+
   render() {
     if (this.state.playerNames === undefined) {
       return null;
@@ -419,9 +455,8 @@ class Board extends React.Component {
         {this.renderActionButtons()}
         <table>
           <tbody>
-            <tr><td><h2>
-              {this.state.playerNames[this.state.turn % this.state.numPlayers]} to Act
-            </h2></td></tr>
+            {this.renderGameOver()}
+            {this.renderTurn()}
             <tr>
               <td> {board} </td>
               <td style={paddingLeft}> {priceSheet} </td>
