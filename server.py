@@ -376,7 +376,6 @@ def end_turn():
     game_id = bson.objectid.ObjectId(data['gameId'])
     game = db.games.find_one({'_id': game_id})
 
-
     # Validate this is a real game
     if game is None:
         return flask.jsonify({}), 404
@@ -393,6 +392,37 @@ def end_turn():
             },
             '$inc': { 'turn': 1 },
         })
+    return flask.jsonify({}), 200
+
+
+@app.route('/board/end_game', methods=['POST'])
+def game_over():
+    data = flask.request.form
+    game_id = bson.objectid.ObjectId(data['gameId'])
+
+    # Validate this is a real game
+    game = db.games.find_one({'_id': game_id})
+    if game is None:
+        return flask.jsonify({}), 404
+
+    # Verify the game is not already over
+    if game['gameOver']:
+        return flask.jsonify({}), 400
+
+    # Verify the game can be ended right now
+    can_end_game = _can_game_over(game)
+    if not can_end_game:
+        return flask.jsonify({}), 400
+
+    total_score = _game_over_calculate_winner(game)
+    db.games.find_one_and_update({'_id': game_id},
+        {
+            '$set': {
+                'gameOver': True,
+                'totalScore': total_score,
+            },
+        })
+
     return flask.jsonify({}), 200
 
 
@@ -486,7 +516,8 @@ def _merge_hotels(game_id, surrounding_hotels, name=None):
         elif len(game[hotels[0]]) == len(game[hotels[1]]) and name is not None:
             # Calculate primary and secondary bonuses
             hotel_name = hotels[0].split('hotel')[1].split('Tiles')[0]
-            funds = _calculate_primary_secondary(hotel_name, game)
+            bonuses = _calculate_primary_secondary(hotel_name, game)
+            funds = [x + y for x, y in zip(game['playerFunds'], bonuses)]
             hotels.remove(name)
 
             db.games.find_one_and_update({'_id': game_id},
@@ -709,6 +740,47 @@ def _calculate_primary_secondary(hotel, game):
     return funds
 
 
+def _get_hotels():
+    return ['Luxor', 'Tower', 'American', 'Festival', 'Worldwide', 'Continental', 'Imperial']
+
+
+def _can_game_over(game):
+    for hotel in _get_hotels():
+        tiles = game['hotel{0}Tiles'.format(hotel)]
+        if len(tiles) > 40:
+            return True
+        if len(tiles) < 11 and len(tiles) > 0:
+            return False
+    return True
+
+
+def _game_over_calculate_winner(game):
+    total_score = [0] * game['numPlayers']
+
+    # Cash-out all shares for existing hotels and calculate primary / secondary bonuses
+    for hotel_index, hotel in enumerate(_get_hotels()):
+        size = len(game['hotel{0}Tiles'.format(hotel)])
+        # Skip non-present hotels
+        if size == 0:
+            continue
+
+        # Liquidate shares
+        cost = _get_hotel_cost_per_share(hotel, size)
+        for player_index in range(game['numPlayers']):
+            index = 7 * player_index + hotel_index
+            total_score[player_index] += game['playerShares'][index] * cost
+
+        # Primary / secondary bonuses
+        bonuses = _calculate_primary_secondary(hotel, game)
+        total_score = [x + y for x, y in zip(total_score, bonuses)]
+
+    # Add cash reserves
+    for player_index in range(game['numPlayers']):
+        total_score[player_index] += game['playerFunds'][player_index]
+
+    return total_score
+
+
 def _create_game(num_players, players=None):
     random_bag = range(12 * 9)
     starting_board = list(random.sample(random_bag, num_players))
@@ -741,6 +813,7 @@ def _create_game(num_players, players=None):
         'playerFunds': [6000] * num_players,
         'playerShares': [0] * num_players * 7,
         'squares': starting_board,
+        'totalScore': [0] * num_players,
         'turn': turn_num,
         'turnBuyPhase': False,
         'turnPlacePhase': False,

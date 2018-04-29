@@ -146,16 +146,16 @@ class Board extends React.Component {
   }
 
   gameOver() {
-    const hotelSizes = this.getHotelArray().map((key) => {
-      return this.state.key.size;
+    $.post({
+      url: 'http://localhost:3000/board/end_game',
+      data: {
+        gameId: this.state.gameId
+      },
+      success: this.getBoardState
+    })
+    .fail(function() {
+      alert('Could not end the game at this time.');
     });
-    const maxHotel = Math.max(...hotelSizes);
-    const safeChains = hotelSizes.filter((size) => { return size >= 11; });
-    const gameOver = maxHotel >= 41 || safeChains.length === NUM_HOTELS;
-    this.setState({
-      gameOver: gameOver,
-    });
-    return gameOver;
   }
 
   /*
@@ -286,8 +286,7 @@ class Board extends React.Component {
         <button disabled={!this.state.turnPlacePhase}
                 onClick={() => this.endTurn()}
         >End Turn</button>
-        <button disabled={true}
-                onClick={() => this.gameOver()}
+        <button onClick={() => this.gameOver()}
         >Game Over</button>
       </div>
     );

@@ -10,3 +10,7 @@ List of bugs introduced after the refactor
 3) If the starting 6 tiles have two adjacent tiles, then creating a hotel does
    not produce correct results. E.G. if D10 and D11 are part of the initial 6,
    placing D9 only creates a hotel containing D9 and D10, and not D11.
+
+4) In the case of a single bonus receiver (no secondaries), the zeroes are
+   treated as if they're secondary bonus receivers and get money even though
+   they own no shares of the hotel
