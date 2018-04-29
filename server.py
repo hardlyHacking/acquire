@@ -716,6 +716,10 @@ def _calculate_primary_secondary(hotel, game):
     primary_indices = [i for i, elem in enumerate(hotel_shares) if elem == primary]
     secondary_indices = [i for i, elem in enumerate(hotel_shares) if elem == secondary]
 
+    if secondary == 0:
+        secondary_count = 0
+        secondary_indices = []
+
     # Assign net gain for each based on the count + value of hotel bonus
     cost = _get_hotel_cost_per_share(hotel, len(game['hotel{0}Tiles'.format(hotel)]))
     funds = []
